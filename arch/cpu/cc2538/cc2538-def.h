@@ -59,9 +59,19 @@
 #define TSCH_CONF_BASE_DRIFT_PPM -977
 #endif
 
+
+
+/*---------------------------------------------------------------------------*/
 // Use costum timeslot timings 
 extern const uint16_t tsch_timing_cc2538_15ms[];
 #define TSCH_CONF_DEFAULT_TIMESLOT_TIMING       (tsch_timing_cc2538_15ms)
+
+// Decrease keep-alive timeout (see issue 657: https://github.com/contiki-ng/contiki-ng/issues/657)
+#define TSCH_CONF_KEEPALIVE_TIMEOUT         (8 * CLOCK_SECOND)
+#define TSCH_CONF_MAX_KEEPALIVE_TIMEOUT     (30 * CLOCK_SECOND)
+/*---------------------------------------------------------------------------*/
+
+
 
 
 /*---------------------------------------------------------------------------*/

@@ -4,8 +4,8 @@
 #include "contiki-net.h"
 
 // String for debug purposes
-#ifndef AT86RF2XX_BOARD_STRING
-#define AT86RF2XX_BOARD_STRING "Unknown"
+#ifndef VESNA_BOARD_STRING
+#define VESNA_BOARD_STRING "Unknown"
 #endif
 
 
@@ -50,7 +50,7 @@ int rf2xx_off(void);
 void rf2xx_isr(void);
 
 // Continuous transmission test mode
-void rf2xx_CTTM_start(void);
+void rf2xx_CTTM_start(uint8_t channel);
 void rf2xx_CTTM_stop(void);
 
 #endif

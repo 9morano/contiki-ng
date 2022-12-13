@@ -164,7 +164,7 @@ void vsnDriversConf_nvic(void) {
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 */
-#if AT86RF2XX_BOARD_SNR
+#if VESNA_BOARD_SNR
 	// Enable AT86RF2xx radio interrupt on SNR board
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
@@ -173,7 +173,7 @@ void vsnDriversConf_nvic(void) {
 	NVIC_Init(&NVIC_InitStructure);
 #endif
 
-#if (AT86RF2XX_BOARD_ISMTV_V1_0 || AT86RF2XX_BOARD_ISMTV_V1_1)
+#if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
 	// Enable AT86RF2xx radio interrupt on ISMTV board
 	NVIC_InitStructure.NVIC_IRQChannel = EXTI3_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;

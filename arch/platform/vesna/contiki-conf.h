@@ -31,7 +31,10 @@ typedef uint32_t uip_stats_t;
 // TODO: linker script doesn't define proper pointers to enable this feature
 #define STACK_CHECK_CONF_ENABLED	(0)
 
-#ifdef AT86RF2XX
+
+
+// Radio config
+// TODO: create an option to support Contiki-NG without radio drivers
 #include "rf2xx_arch.h"
 
 #define rf2xx_driver_max_payload_len    RF2XX_MAX_PAYLOAD_SIZE
@@ -51,6 +54,7 @@ typedef uint32_t uip_stats_t;
 #define TSCH_CONF_DEFAULT_TIMESLOT_TIMING RF2XX_CONF_DEFAULT_TIMESLOT_TIMING
 #endif
 
+#define TSCH_CONF_RADIO_ON_DURING_TIMESLOT  RF2XX_RADIO_ON_DURING_TIMESLOT
 
 /* CSMA acknowledge configuration  */
 #ifndef CSMA_CONF_SEND_SOFT_ACK
@@ -67,7 +71,5 @@ typedef uint32_t uip_stats_t;
 
 // Extended mode does automatic acknowledgements
 //#define RDC_CONF_HARDWARE_ACK		1
-
-#endif
 
 #endif

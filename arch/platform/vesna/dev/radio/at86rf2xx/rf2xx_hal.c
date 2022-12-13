@@ -19,11 +19,11 @@
 #include "rf2xx.h"
 #include "rf2xx_arch.h"
 
-#if (AT86RF2XX_BOARD_ISMTV_V1_0 || AT86RF2XX_BOARD_ISMTV_V1_1)
+#if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
 #include "radio/cc1101/cc1101_hal.h"
 #endif
 
-#if AT86RF2XX_BOARD_SNR
+#if VESNA_BOARD_SNR
 #include "vsnsetup.h"
 #endif
 
@@ -92,13 +92,13 @@ void
 rf2xx_initHW(void)
 {
 	// If AT86RF2xx radio is on SNR board
-	#if AT86RF2XX_BOARD_SNR
+	#if VESNA_BOARD_SNR
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	#endif
 
 	// If AT86RF2xx radio is on ISTMV v1.0 board
-	#if AT86RF2XX_BOARD_ISMTV_V1_0
+	#if VESNA_BOARD_ISMTV_V1_0
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
         // Quirk: Disable JTAG since it share pin with RST (fixed in ISMTV v1.1 hardware)
@@ -108,7 +108,7 @@ rf2xx_initHW(void)
 	#endif
 
 	// If AT86RF2xx radio is on ISTMV v1.1 board
-	#if AT86RF2XX_BOARD_ISMTV_V1_1
+	#if VESNA_BOARD_ISMTV_V1_1
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	#endif
@@ -117,7 +117,7 @@ rf2xx_initHW(void)
 	vsnSPI_initHW(SPI_PORT);
 
     // Configure CC1101 clock --> for rTimer trigger 
-    #if (AT86RF2XX_BOARD_ISMTV_V1_0 || AT86RF2XX_BOARD_ISMTV_V1_1)
+    #if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
         CC1101_init();
     #endif
 
@@ -170,7 +170,6 @@ void
 rf2xx_reset(void)
 {
     uint8_t dummy __attribute__((unused));
-    uint8_t partNum;
 
     LOG_DBG("%s\n", __func__);
 
@@ -185,7 +184,7 @@ rf2xx_reset(void)
     clearRST(); // release radio from RESET state
 
 	// Print for what pin layout was compiled.
-	LOG_INFO("Compiled for " AT86RF2XX_BOARD_STRING "\n");
+	LOG_INFO("Compiled for " VESNA_BOARD_STRING " with " VESNA_RADIO_STRING "\n");
 
     // Radio indentification procedure
     do {
@@ -196,20 +195,17 @@ rf2xx_reset(void)
             LOG_DBG("JEDEC ID matches Atmel\n");
 
             // Match known radio (and sanitize radio type)
-            partNum = regRead(RG_PART_NUM);
-            switch (partNum) {
-                case RF2XX_AT86RF233:
-                case RF2XX_AT86RF231:
-                case RF2XX_AT86RF230:
-                case RF2XX_AT86RF212:
-                    rf2xxChip = partNum;
-                default:
-                    break;
-            }
+            rf2xxChip = regRead(RG_PART_NUM);
         }
-    } while (RF2XX_UNDEFINED == rf2xxChip);
+    } while (RF2XX_ID_UNDEFINED == rf2xxChip);
 
-    // Radio indentified. Now, put it into TRX_OFF state.
+    if (RF2XX_ID != rf2xxChip){
+        LOG_ERR("Defined VESNA_RADIO is not the same as the one on the board!\n");
+        printf("\n");
+        while(1);
+    }
+
+    // Radio identified. Now, put it into TRX_OFF state.
     do {
         regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
     } while (TRX_STATUS_TRX_OFF != bitRead(SR_TRX_STATUS));
@@ -217,7 +213,7 @@ rf2xx_reset(void)
 	// CLKM clock change visible (0 = immediately, 1 = needs to go through SLEEP cycle)
 	bitWrite(SR_CLKM_SHA_SEL, 0);
 
-#if AT86RF2XX_BOARD_SNR
+#if VESNA_BOARD_SNR
 	// Enable CLKM (as output) so it can be used as external clock source for VESNA
 	bitWrite(SR_CLKM_CTRL, CLKM_CTRL__8MHz);
 #else
@@ -250,12 +246,16 @@ rf2xx_reset(void)
 	regWrite(RG_CSMA_SEED_0, regRead(RG_PHY_RSSI));
 
 	// First returned byte will be IRQ_STATUS;
-	bitWrite(SR_SPI_CMD_MODE, SPI_CMD_MODE__IRQ_STATUS);
+	// bitWrite(SR_SPI_CMD_MODE, SPI_CMD_MODE__IRQ_STATUS); // Disable, since we don't need it (TODO: true for RF233, check for others)
 
 	// Configure Promiscuous mode (AACK-mode only)
 	bitWrite(SR_AACK_PROM_MODE, RF2XX_PROMISCOUS_MODE);
 	bitWrite(SR_AACK_UPLD_RES_FT, RF2XX_PROMISCOUS_MODE);
 	bitWrite(SR_AACK_FLTR_RES_FT, RF2XX_PROMISCOUS_MODE);
+
+    // Allow TSCH packet through the frame filter (TSHC is 2015 --> version 2)
+    // TODO: check if needed (CSMA works with this..)
+    bitWrite(SR_AACK_FVN_MODE, 2);
 
 	// Enable only specific IRQs
 	regWrite(RG_IRQ_MASK, DEFAULT_IRQ_MASK);
@@ -349,7 +349,7 @@ FIFOREAD(rxFrame_t *frame)
     status = vsnSPI_pullByteTXRX(rf2xxSPI, (CMD_FB_ACCESS | CMD_READ), &irq.value);
     if (status != VSN_SPI_SUCCESS) goto error;
 
-    if (irq.IRQ6_TRX_UR) goto error;
+    //if (irq.IRQ6_TRX_UR) goto error;
 
     status = vsnSPI_pullByteTXRX(rf2xxSPI, 0x00, &frame->len);
     if (status != VSN_SPI_SUCCESS) goto error;
@@ -369,23 +369,24 @@ FIFOREAD(rxFrame_t *frame)
     status = vsnSPI_pullByteTXRX(rf2xxSPI, 0x00, &frame->lqi);
     if (status != VSN_SPI_SUCCESS) goto error;
 
-    // AT86RF233 adds another byte, which is RSSI value
-    if (rf2xxChip == RF2XX_AT86RF233) {
-        status = vsnSPI_pullByteTXRX(rf2xxSPI, 0x00, (uint8_t *)&frame->rssi);
-        if (status != VSN_SPI_SUCCESS) goto error;
-    }
+    // AT86RF233 adds 2 more bytes, which are ED value and RX_STATUS
+#ifdef AT86RF233
+    status = vsnSPI_pullByteTXRX(rf2xxSPI, 0x00, (uint8_t *)&frame->ed);
+    if (status != VSN_SPI_SUCCESS) goto error;
+    status = vsnSPI_pullByteTXRX(rf2xxSPI, 0x00, (uint8_t *)&frame->rx_status);
+    if (status != VSN_SPI_SUCCESS) goto error;
+#endif
     
     status = clearCS();
     if (status != VSN_SPI_SUCCESS) goto error;
 
-    if (rf2xxChip != RF2XX_AT86RF233) {
-        status = REGREAD(RG_PHY_ED_LEVEL, (uint8_t *)&frame->rssi);
-        if (status != VSN_SPI_SUCCESS) goto error;
-    }
+    status = REGREAD(RG_PHY_ED_LEVEL, (uint8_t *)&frame->rssi);
+    if (status != VSN_SPI_SUCCESS) goto error;
 
     critical_exit(intStatus);
 
-    frame->rssi += -91; // RSSI_BASE_VAL
+    // Radio's RSSI_BASE_VAL differs
+    frame->rssi +=  RSSI_BASE_VAL;
 
     return status;
 

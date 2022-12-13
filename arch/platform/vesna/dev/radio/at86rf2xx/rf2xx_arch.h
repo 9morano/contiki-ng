@@ -11,7 +11,8 @@
 
 
 // The delay between radio Tx request and SFD sent, in rtimer ticks
-#define RF2XX_DELAY_BEFORE_TX		((unsigned)US_TO_RTIMERTICKS(290))
+//#define RF2XX_DELAY_BEFORE_TX		((unsigned)US_TO_RTIMERTICKS(290))
+#define RF2XX_DELAY_BEFORE_TX		((unsigned)US_TO_RTIMERTICKS(180)) 
 // Possible state transitions:
 //      -> FORCE_TRX_OFF                    - 1us
 //      TRX_OFF -> PLL_ON                   - 110us
@@ -23,7 +24,7 @@
 //                                          = 286us
 
 // The delay between radio Rx request and start listening, in rtimer ticks
-#define RF2XX_DELAY_BEFORE_RX		((unsigned)US_TO_RTIMERTICKS(150))
+#define RF2XX_DELAY_BEFORE_RX		((unsigned)US_TO_RTIMERTICKS(160))
 // Possible state transitions:
 //       -> FORCE_TRX_OFF                   - 1us
 //       TRX_OFF -> RX_ON                   - 110us 
@@ -48,20 +49,31 @@
 #define RF2XX_BASE_DRIFT_PPM        (RTIMER_ARCH_DRIFT_PPM)
 
 
-extern const uint16_t tsch_timeslot_timing_rf2xx_10000us_250kbps[];
-
-// TSCH timeslot timing (default is: 10ms tsch_timeslot_timing_us_10000)
-#define RF2XX_CONF_DEFAULT_TIMESLOT_TIMING	(tsch_timeslot_timing_rf2xx_10000us_250kbps)
-
-
+/* ---------------------------------------------------------------- */
 // If driver is built for Contiki's 6Tisch implementation
 #if MAC_CONF_WITH_TSCH
-#define RF2XX_CONF_AACK         (0)
-#define RF2XX_CONF_ARET         (0)
-//#define RF2XX_CONF_HW_CCA       (0)
-#define RF2XX_CONF_POLLING_MODE (1)
-#endif
+#define RF2XX_CONF_AACK                     (0)
+#define RF2XX_CONF_ARET                     (0)
+//#define RF2XX_CONF_HW_CCA                 (0)
+#define RF2XX_CONF_POLLING_MODE             (1)
+#define RF2XX_CONF_RADIO_ON_DURING_TIMESLOT (1)
 
+
+// TSCH timeslot timing of VESNA devices (defined in rf2xx_tsch.c)
+// (default is: 10ms tsch_timeslot_timing_us_10000)
+extern const uint16_t tsch_timeslot_timing_rf2xx_10000us_250kbps[];
+#define RF2XX_CONF_DEFAULT_TIMESLOT_TIMING	(tsch_timeslot_timing_rf2xx_10000us_250kbps)
+
+#endif
+/* ---------------------------------------------------------------- */
+
+
+// Radio won't go to off state between PACKET and ACK - faster transition
+#ifndef RF2XX_CONF_RADIO_ON_DURING_TIMESLOT
+#define RF2XX_RADIO_ON_DURING_TIMESLOT  (1)
+#else
+#define RF2XX_RADIO_ON_DURING_TIMESLOT   (RF2XX_CONF_RADIO_ON_DURING_TIMESLOT)
+#endif
 
 // Enable radio's auto acknowledge capabilities (extended mode)
 #ifndef RF2XX_CONF_AACK
@@ -69,9 +81,6 @@ extern const uint16_t tsch_timeslot_timing_rf2xx_10000us_250kbps[];
 #else
 #define RF2XX_AACK   (RF2XX_CONF_AACK)
 #endif
-
-/* CSMA acknowledge configuration  */
-#define RF2XX_SEND_SOFT_ACK (!RF2XX_AACK)
 
 // Enable radio's auto retransmission capabilities (extended mode)
 #ifndef RF2XX_CONF_ARET
@@ -82,6 +91,9 @@ extern const uint16_t tsch_timeslot_timing_rf2xx_10000us_250kbps[];
 
 // Enables radio's automatic CCA before sending
 #define RF2XX_HW_CCA   (RF2XX_ARET)
+
+/* CSMA acknowledge configuration  */
+#define RF2XX_SEND_SOFT_ACK (!RF2XX_AACK)
 
 // Number of CSMA retries 0-5, 6 = reserved, 7 = immediately without CSMA/CA
 #ifndef RF2XX_CONF_CSMA_RETRIES

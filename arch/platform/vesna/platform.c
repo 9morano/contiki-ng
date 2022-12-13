@@ -99,7 +99,7 @@ platform_init_stage_three(void)
 	NETSTACK_RADIO.set_value(RADIO_PARAM_CHANNEL, IEEE802154_DEFAULT_CHANNEL);
 	NETSTACK_RADIO.set_object(RADIO_PARAM_64BIT_ADDR, linkaddr_node_addr.u8, LINKADDR_SIZE);
 
-	#if AT86RF2XX_BOARD_SNR
+	#if VESNA_BOARD_SNR
 	{
 		// Go for external output when CLKM is properly configured
 		int status = vsnSetup_extClk();

@@ -37,7 +37,7 @@ volatile uint32_t rf2xxStats[RF2XX_STATS_COUNT] = { 0 };
 static rxFrame_t rxFrame;
 static txFrame_t txFrame;
 
-uint8_t rf2xxChip = RF2XX_UNDEFINED;
+uint8_t rf2xxChip = RF2XX_ID_UNDEFINED;
 
 volatile static rf2xx_flags_t flags;
 
@@ -152,55 +152,19 @@ rf2xx_prepare(const void *payload, unsigned short payload_len)
     // LOG_DBG("calculated CRC 0x%04x \n", *txFrame.crc);
 #endif
 
-   // State transition - put radio in proper state befor sending
-#if RF2XX_ARET
+    return RADIO_TX_OK;
+}
 
-    again:
-    trxState = bitRead(SR_TRX_STATUS);
-    switch (trxState) {
-        case TRX_STATUS_STATE_TRANSITION:
-            goto again;
 
-        case TRX_STATUS_BUSY_RX:
-        case TRX_STATUS_BUSY_RX_AACK:
-        case TRX_STATUS_BUSY_TX:
-        case TRX_STATUS_BUSY_TX_ARET:
-            LOG_WARN("TR-Interrupted busy state %d \n", trxState);
+int
+rf2xx_transmit(unsigned short transmit_len)
+{
+    LOG_DBG("%s\n", __func__);
 
-        case TRX_STATUS_RX_AACK_ON:
-        case TRX_STATUS_RX_ON:
-            ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
+    vsnSPI_ErrorStatus status;
+    uint8_t trxState;
 
-            // First go to TRX_OFF state 
-            regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
-            if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
-                goto again;
-            }
-
-        case TRX_STATUS_TX_ON:
-        case TRX_STATUS_TRX_OFF:
-
-            // Than to TX_ARET_ON state
-            regWrite(RG_TRX_STATE, TRX_CMD_TX_ARET_ON);
-            if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
-                goto again;
-            }
-
-        case TRX_STATUS_TX_ARET_ON:
-
-            // Allready in proper state
-            ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
-            flags.value = 0;
-            break;
-
-        default: // Unknown state
-            LOG_ERR("Radio in state: 0x%02x\n", trxState);
-            RF2XX_STATS_ADD(txError);
-            return RADIO_TX_ERR;
-    }
-#else
-
-    again:
+again:
     trxState = bitRead(SR_TRX_STATUS);
     switch (trxState) {
         case TRX_STATUS_STATE_TRANSITION:
@@ -243,53 +207,6 @@ rf2xx_prepare(const void *payload, unsigned short payload_len)
             RF2XX_STATS_ADD(txError);
             return RADIO_TX_ERR;
     }
-#endif
-
-    return RADIO_TX_OK;
-}
-
-
-int
-rf2xx_transmit(unsigned short transmit_len)
-{
-    LOG_DBG("%s\n", __func__);
-
-    vsnSPI_ErrorStatus status;
-/*
-again:
-    trxState = bitRead(SR_TRX_STATUS);
-    switch (trxState) {
-        case TRX_STATUS_STATE_TRANSITION:
-            goto again;
-
-        case TRX_STATUS_TRX_OFF:
-        case TRX_STATUS_RX_AACK_ON:
-        case TRX_STATUS_BUSY_RX_AACK:
-        case TRX_STATUS_RX_ON:
-        case TRX_STATUS_BUSY_RX:
-            // 1-hop migration
-            ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
-            flags.value = 0;
-
-            regWrite(RG_TRX_STATE, (RF2XX_ARET) ? TRX_CMD_TX_ARET_ON : TRX_CMD_TX_ON);
-            while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION);
-            //BUSYWAIT_UNTIL(bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION);
-            //BUSYWAIT_UNTIL(flags.PLL_LOCK); // Is not triggered when Tx -> Rx
-
-        case TRX_STATUS_TX_ON:
-        case TRX_STATUS_BUSY_TX:
-        case TRX_STATUS_TX_ARET_ON:
-        case TRX_STATUS_BUSY_TX_ARET:
-            // Already in proper state;
-            ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
-            break;
-
-        default: // Unknown state
-            LOG_ERR("Radio in state: 0x%02x\n", trxState);
-            RF2XX_STATS_ADD(txError);
-            return RADIO_TX_ERR;
-    }
-*/
 
     setSLPTR();
     clearSLPTR();
@@ -396,7 +313,7 @@ rf2xx_channel_clear(void)
         return 1;
     #else
         uint8_t cca;
-        rf2xx_on();
+        //rf2xx_on();   // Contiki puts the radio to on state
 
         //bitWrite(SR_RX_PDT_DIS, 1); // disable reception
 
@@ -527,6 +444,7 @@ rf2xx_on(void)
 
             case TRX_STATUS_TX_ARET_ON:
             case TRX_STATUS_RX_AACK_ON:
+            case TRX_STATUS_P_ON:
 
                 // First go to TRX_OFF state
                 regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
@@ -569,41 +487,6 @@ rf2xx_on(void)
         }
 
 #endif
-/*
-again:
-    trxState = bitRead(SR_TRX_STATUS);
-    switch (trxState) {
-        case TRX_STATUS_STATE_TRANSITION:
-            goto again;
-
-        case TRX_STATUS_TRX_OFF:
-        case TRX_STATUS_TX_ARET_ON:
-        case TRX_STATUS_BUSY_TX_ARET:
-        case TRX_STATUS_TX_ON:
-        case TRX_STATUS_BUSY_TX:
-            // 1-hop migration
-            flags.value = 0;
-            regWrite(RG_TRX_STATE, (RF2XX_AACK) ? TRX_CMD_RX_AACK_ON : TRX_CMD_RX_ON);
-            while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION);
-            //BUSYWAIT_UNTIL(flags.PLL_LOCK);
-            ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
-
-            // fall-thru
-        //case TRX_STATUS_RX_AACK_ON_NOCLK:
-        //case TRX_STATUS_BUSY_RX_AACK_NOCLK:
-        case TRX_STATUS_RX_AACK_ON:
-        case TRX_STATUS_BUSY_RX_AACK:
-        case TRX_STATUS_RX_ON:
-        case TRX_STATUS_BUSY_RX:
-            // Proper state
-            ENERGEST_ON(ENERGEST_TYPE_LISTEN);
-            return 1;
-
-        default:
-            LOG_DBG("Unknown state: 0x%02x\n", trxState);
-            return 0;
-    }
-*/
 }
 
 
@@ -626,6 +509,7 @@ again:
         case TRX_STATUS_RX_AACK_ON:  
         case TRX_STATUS_TX_ON:
         case TRX_STATUS_TX_ARET_ON:
+        case TRX_STATUS_P_ON:
 
             // Idle Tx/Rx state
             regWrite(RG_TRX_STATE, TRX_CMD_TRX_OFF);
@@ -663,43 +547,6 @@ again:
             ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
             return 1;
     }
-
-/*
-again:
-    trxState = bitRead(SR_TRX_STATUS);
-    switch (trxState) {
-        case TRX_STATUS_STATE_TRANSITION:
-            goto again;
-
-        case TRX_STATUS_TRX_OFF:
-            // already in OFF state
-            return 1;
-
-        case TRX_STATUS_RX_ON:
-        case TRX_STATUS_RX_AACK_ON:
-        case TRX_STATUS_RX_AACK_ON_NOCLK:
-        case TRX_STATUS_TX_ON:
-        case TRX_STATUS_TX_ARET_ON:
-            // Idle Tx/Rx state
-            regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
-            flags.value = 0;
-            ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
-            return 1;
-
-        case TRX_STATUS_BUSY_RX:
-        case TRX_STATUS_BUSY_RX_AACK:
-        case TRX_STATUS_BUSY_RX_AACK_NOCLK:
-        case TRX_STATUS_BUSY_TX:
-        case TRX_STATUS_BUSY_TX_ARET:
-            // Busy states
-            LOG_DBG("Busy state\n");
-            return 0;
-
-        default:
-            LOG_ERR("Unknown state: 0x%02x\n", trxState);
-            return 0;
-    }
-*/
 }
 
 void
@@ -1077,7 +924,7 @@ const struct radio_driver rf2xx_driver = {
 
 
 void
-rf2xx_CTTM_start(void){
+rf2xx_CTTM_start(uint8_t channel){
     
     static txFrame_t continuousFrame;
     vsnSPI_ErrorStatus status;
@@ -1102,13 +949,12 @@ rf2xx_CTTM_start(void){
     regWrite(RG_TRX_STATE, TRX_CMD_TRX_OFF);
 
 // 5. Set clock at pin 17 (CLKM) 
-    // TODO  why do we need this?
 
 // 6. Set channel 
-    bitWrite(SR_CHANNEL, 16);
+    bitWrite(SR_CHANNEL, channel);
 
-// 7. Set output power to max 
-    bitWrite(SR_TX_PWR, 0xF);
+// 7. Set output power to (max = 0x0)
+    bitWrite(SR_TX_PWR, 0x0);
 
 // 8. Verify TRX_OFF state 
     while(bitRead(SR_TRX_STATUS) != TRX_STATUS_TRX_OFF){
@@ -1121,16 +967,21 @@ rf2xx_CTTM_start(void){
 
 // #if CW
 // 10. Enable High Data Rate Mode, 2 Mb/s 
-    bitWrite(SR_OQPSK_DATA_RATE, OQPSK_DATA_RATE_2000);
+    regWrite(0x0C, 0x03);
 
 // 11. Configure High Data rate Mode 
+#ifdef AT86RF233
+    regWrite(0x0A, 0x37);
+#else
     regWrite(0x0A, 0xA7);
+#endif
 
 // 12. Write PHR and PSDU data - frame buffer - choose one
     memset(payload, 0x00, payload_len);   // CW at Fc-0.5MHz
     //memset(payload, 0xFF, payload_len);   // CW at Fc+0.5MHz
 
-// #endif CW */
+// #endif CW
+
 
 /* #if PRBS
 // 10. 11. and 12. 
@@ -1162,7 +1013,7 @@ rf2xx_CTTM_start(void){
     regWrite(RG_TRX_STATE, TRX_CMD_TX_START);
 
 // 18. Preform measurement 
-    LOG_INFO("Radio is continuosly transmitting on channel 19 \n "); //TODO
+    LOG_INFO("Radio is continuously transmitting on channel %d \n", channel);
 }
 
 void

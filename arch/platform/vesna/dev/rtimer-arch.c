@@ -54,7 +54,7 @@ void rtimer_arch_init(void) {
     // TIM5 clock enable
     RCC_APB1PeriphClockCmd(RTIMER_APB1, ENABLE);
 
-#if (AT86RF2XX_BOARD_ISMTV_V1_0 || AT86RF2XX_BOARD_ISMTV_V1_1)
+#if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
     TIM_TimeBaseInitTypeDef externalTimerInitStructure = {
         .TIM_Prescaler = 206 - 1,       // 0 = run @ 13.5MHz, 206 = run @ 65533.98 Hz
         .TIM_CounterMode = TIM_CounterMode_Up,

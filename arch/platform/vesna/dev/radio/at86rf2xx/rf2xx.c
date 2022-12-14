@@ -17,6 +17,7 @@
 #include "rf2xx.h"
 #include "rf2xx_arch.h"
 #include "rf2xx_stats.h"
+#include "rf233_pmu.h"
 
 #define LOG_MODULE  "rf2xx"
 #define LOG_LEVEL   LOG_LEVEL_RF2XX
@@ -40,7 +41,7 @@ static txFrame_t txFrame;
 uint8_t rf2xxChip = RF2XX_ID_UNDEFINED;
 
 volatile static rf2xx_flags_t flags;
-
+uint8_t packet_is_pending = 0;
 
 void
 setPanID(uint16_t pan)
@@ -152,18 +153,7 @@ rf2xx_prepare(const void *payload, unsigned short payload_len)
     // LOG_DBG("calculated CRC 0x%04x \n", *txFrame.crc);
 #endif
 
-    return RADIO_TX_OK;
-}
-
-
-int
-rf2xx_transmit(unsigned short transmit_len)
-{
-    LOG_DBG("%s\n", __func__);
-
-    vsnSPI_ErrorStatus status;
-    uint8_t trxState;
-
+    // Go to PLL_ON state
 again:
     trxState = bitRead(SR_TRX_STATUS);
     switch (trxState) {
@@ -176,21 +166,12 @@ again:
         case TRX_STATUS_BUSY_TX_ARET:
             LOG_WARN("TR-Interrupted busy state %d \n", trxState);
 
-            // First go to TRX_OFF state 
-            regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
-            if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
-                goto again;
-            }
-
-            ENERGEST_OFF(ENERGEST_TYPE_LISTEN); //TODO where to put it?
-
         case TRX_STATUS_RX_AACK_ON:
         case TRX_STATUS_RX_ON:
         case TRX_STATUS_TX_ARET_ON:
         case TRX_STATUS_TRX_OFF:
 
-            // Than to TX_ON state
-            regWrite(RG_TRX_STATE, TRX_CMD_TX_ON);
+            regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON);
             if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
                 goto again;
             }
@@ -208,10 +189,21 @@ again:
             return RADIO_TX_ERR;
     }
 
+    return RADIO_TX_OK;
+}
+
+
+int
+rf2xx_transmit(unsigned short transmit_len)
+{
+    LOG_DBG("%s\n", __func__);
+
+    uint8_t trxState;
+
     setSLPTR();
     clearSLPTR();
 
-    status = frameWrite(&txFrame);
+    vsnSPI_ErrorStatus status = frameWrite(&txFrame);
     if (status != VSN_SPI_SUCCESS){
         RF2XX_STATS_ADD(txError);
         return RADIO_TX_ERR;
@@ -234,6 +226,8 @@ again:
         return RADIO_TX_ERR;
     }
 
+    flags.value = 0;
+
     #if RF2XX_PACKET_STATS
         // Update TX packet statistics
         STATS_txPush(&txFrame);
@@ -243,19 +237,13 @@ again:
     
     ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT);
 
-    flags.value = 0;
 
-    // First to TRX_OFF state
-    regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
-    while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION);
-    // TODO: Force radio in correct state inside while loop.
 
-    // Go to RX state
-    regWrite(RG_TRX_STATE, (RF2XX_AACK) ? TRX_CMD_RX_AACK_ON: TRX_CMD_RX_ON);
-    while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION);
-    // TODO: Force radio in correct state inside while loop.
-
+    // Go to RX (Contiki does not distinguish between RX ON and TX_ON)
+    // After TX, we should listen for ACK packet
+    regWrite(RG_TRX_STATE, TRX_CMD_RX_ON);
     ENERGEST_ON(ENERGEST_TYPE_LISTEN);
+
 
 	switch (txFrame.trac) {
         case TRAC_SUCCESS:
@@ -291,8 +279,16 @@ rf2xx_send(const void *payload, unsigned short payload_len)
 int rf2xx_read(void *buf, unsigned short buf_len)
 {
     int_master_status_t status;
-    uint8_t frame_len = rxFrame.len;
 
+    frameRead(&rxFrame);
+    packet_is_pending = 0;
+
+    #if RF2XX_PACKET_STATS
+        // Update RX packet statistics
+        STATS_rxPush(&rxFrame);
+    #endif
+
+    uint8_t frame_len = rxFrame.len;
     status = critical_enter();
 
     memcpy(buf, rxFrame.content, rxFrame.len);
@@ -314,16 +310,12 @@ rf2xx_channel_clear(void)
     #else
         uint8_t cca;
         //rf2xx_on();   // Contiki puts the radio to on state
-
-        //bitWrite(SR_RX_PDT_DIS, 1); // disable reception
-
+        bitWrite(SR_RX_PDT_DIS, 1); // disable reception
         bitWrite(SR_CCA_REQUEST, 1); // trigger CCA sensing
         BUSYWAIT_UNTIL(flags.CCA);
         flags.CCA = 0;
-
         cca = bitRead(SR_CCA_STATUS); // 1 = IDLE, 0 = BUSY
-
-        //bitWrite(SR_RX_PDT_DIS, 0); // Enable reception
+        bitWrite(SR_RX_PDT_DIS, 0); // Enable reception
         return cca;
     #endif
 }
@@ -342,7 +334,7 @@ rf2xx_receiving_packet(void)
                 return 1;
 
             default:
-                // false alarm
+                // false alarm or already received a packet
                 flags.RX_START = 0; 
                 return 0;
         }
@@ -366,7 +358,7 @@ rf2xx_pending_packet(void)
     }
     #endif 
 
-    return rxFrame.len > 0;
+    return packet_is_pending;
 }
 
 
@@ -440,12 +432,11 @@ rf2xx_on(void)
             case TRX_STATUS_BUSY_RX_AACK:
             case TRX_STATUS_BUSY_TX:
             case TRX_STATUS_BUSY_TX_ARET:
-                LOG_WARN("ON-Interrupted busy state %d\n", trxState);
+                LOG_WARN("ON-Interrupted busy state %d!\n", trxState);
 
             case TRX_STATUS_TX_ARET_ON:
             case TRX_STATUS_RX_AACK_ON:
             case TRX_STATUS_P_ON:
-
                 // First go to TRX_OFF state
                 regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
                 if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
@@ -454,36 +445,34 @@ rf2xx_on(void)
 
             case TRX_STATUS_TX_ON:
             case TRX_STATUS_TRX_OFF:
-
-                ENERGEST_OFF(ENERGEST_TYPE_TRANSMIT); // TODO Where to put it?
-
                 // Then go to RX_ON state
                 regWrite(RG_TRX_STATE, TRX_CMD_RX_ON );
                 if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
                     goto again;
                 }
+            
             case TRX_STATUS_RX_ON:
-
                 // Allready in proper state
                 flags.value = 0;
                 ENERGEST_ON(ENERGEST_TYPE_LISTEN);
                 return 1;
 
             case TRX_STATUS_BUSY_RX:
-                LOG_WARN("Allready receiving something \n");
+                LOG_DBG("Allready receiving something \n");
                 return 1;
 
             default:
                 LOG_ERR("ON-Unknown state: 0x%02x\n", trxState);
                 // Contiki doesn't care if we return back 1 or 0...we should reset radio at this point
-                
-                regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
-                while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION); 
-                regWrite(RG_TRX_STATE, TRX_CMD_RX_ON );
-                while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION); 
-                flags.value = 0;
-                ENERGEST_ON(ENERGEST_TYPE_LISTEN);
-                return 1;
+                goto again;
+
+                //regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
+                //while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION); 
+                //regWrite(RG_TRX_STATE, TRX_CMD_RX_ON );
+                //while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION); 
+                //flags.value = 0;
+                //ENERGEST_ON(ENERGEST_TYPE_LISTEN);
+                //return 1;
         }
 
 #endif
@@ -540,12 +529,14 @@ again:
 
         default:
             LOG_ERR("OFF-Unknown state: 0x%02x\n", trxState);
+            goto again;
+
             // Contiki doesn't care if we return back 1 or 0...we should reset radio at this point
-            regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
-            while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION); 
-            flags.value = 0;
-            ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
-            return 1;
+            //regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
+            //while (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION); 
+            //flags.value = 0;
+            //ENERGEST_OFF(ENERGEST_TYPE_LISTEN);
+            //return 1;
     }
 }
 
@@ -587,12 +578,9 @@ rf2xx_isr(void)
         flags.TRX_END = 1;
 
         if (flags.RX_START) {
-            frameRead(&rxFrame);
 
-            #if RF2XX_PACKET_STATS
-                // Update RX packet statistics
-                STATS_rxPush(&rxFrame);
-            #endif
+            flags.RX_START = 0;
+            packet_is_pending = 1;
 
             process_poll(&rf2xx_process);
  

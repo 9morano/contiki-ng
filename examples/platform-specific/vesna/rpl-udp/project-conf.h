@@ -11,10 +11,12 @@
 #define LOG_CONF_LEVEL_MAC                         LOG_LEVEL_INFO
 #define LOG_CONF_LEVEL_FRAMER                      LOG_LEVEL_WARN
 #define LOG_CONF_LEVEL_RF2XX                       LOG_LEVEL_INFO
-#define TSCH_LOG_CONF_PER_SLOT                     (0)
+#define TSCH_LOG_CONF_PER_SLOT                     (1)
 
 // Defines for app
 #define UART1_CONF_BAUDRATE                        (460800)
 #define WATCHDOG_CONF_ENABLED                      (0)
+
+#define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE          (uint8_t[]){11}
 
 #endif /* PROJECT_CONF_H_ */

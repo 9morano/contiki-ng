@@ -17,7 +17,7 @@
 #include "rf2xx.h"
 #include "rf2xx_arch.h"
 #include "rf2xx_stats.h"
-#include "rf233_pmu.h"
+#include "rf233_pmp.h"
 
 #define LOG_MODULE  "rf2xx"
 #define LOG_LEVEL   LOG_LEVEL_RF2XX
@@ -907,6 +907,7 @@ const struct radio_driver rf2xx_driver = {
 	.set_value = set_value,
 	.get_object = get_object,
 	.set_object = set_object,
+    .measure_phase = rf233_phase_measurement_process,
 };
 
 

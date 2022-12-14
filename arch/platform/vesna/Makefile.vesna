@@ -103,7 +103,7 @@ VESNA_BOARD_UPPER = $(shell echo "$(VESNA_BOARD)" | tr [a-z] [A-Z] | tr [.\ ] _)
 
 CONTIKI_TARGET_DIRS += dev/radio/at86rf2xx 
 CONTIKI_TARGET_DIRS += dev/radio/cc1101
-CONTIKI_TARGET_SOURCEFILES += rf2xx.c rf2xx_hal.c rf2xx_tsch.c rf2xx_stats.c
+CONTIKI_TARGET_SOURCEFILES += rf2xx.c rf2xx_hal.c rf2xx_tsch.c rf2xx_stats.c rf233_pmp.c
 CONTIKI_TARGET_SOURCEFILES += cc1101_hal.c
 
 CFLAGS += -D$(VESNA_RADIO_UPPER)

@@ -5,6 +5,7 @@
 #include "rf2xx_registermap.h"
 #include "rf2xx_arch.h"
 #include "vsnspi_new.h"
+#include "sys/rtimer.h"
 
 #ifndef RF2XX_CONF_CALIBRATION_PERIOD
 #define RF2XX_CALIBRATION_PERIOD   (240) // seconds (~4min)

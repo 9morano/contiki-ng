@@ -198,8 +198,6 @@ rf2xx_transmit(unsigned short transmit_len)
 {
     LOG_DBG("%s\n", __func__);
 
-    uint8_t trxState;
-
     setSLPTR();
     clearSLPTR();
 

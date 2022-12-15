@@ -1,13 +1,13 @@
 /** 
  * \file
- *         Header file for the rf233_pmu.c
+ *         Header file for the rf233_pmp.c
  * \brief
- *         The realization of phase measurement with AT68$F233 radio.
+ *         The phase measurement with AT68RF233 radio.
  */
 
 
-#ifndef RF233_PMU_H_
-#define RF233_PMU_H_
+#ifndef RF233_PMP_H_
+#define RF233_PMP_H_
 
 // Include GPIO debug pins
 #define PMP_GPIO_DEBUG                  (1)
@@ -25,11 +25,6 @@
 // Number of sampled phases in one PMP
 #define PMP_MEASUREMENT_SIZE            (15)
 
-// Golomb ruler
-// Thanks to: O. Oshiga, A. Ghods, S. Severi, and G. Abreu, “Efficient Slope Sampling Ranging and Trilateration Techniques for Wireless Localization”
-uint8_t  golomb_ruler[] = {1, 12, 15, 16, 25, 46, 62, 85, 104, 121, 126, 133, 153, 159, 161};
-uint16_t golomb_freq[] = {2400, 2406, 2407, 2408, 2412, 2423, 2431, 2442, 2452, 2460, 2463, 2466, 2476, 2479, 2480};
-uint8_t  golomb_offset[] = {1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1};
 
 
 // Struct to store the measurements (obsolete)

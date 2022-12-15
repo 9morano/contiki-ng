@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "rf233_pmu.h"
+
+#include "rf233_pmp.h"
 #include "rf2xx.h"
 #include "rf2xx_registermap.h"
 #include "rf2xx_hal.h"
@@ -13,6 +14,13 @@
 #define LOG_LEVEL   LOG_LEVEL_INFO
 
 //#if RF233_PMU
+
+// Golomb ruler
+// Thanks to: O. Oshiga, A. Ghods, S. Severi, and G. Abreu, “Efficient Slope Sampling Ranging and Trilateration Techniques for Wireless Localization”
+uint8_t  golomb_ruler[] = {1, 12, 15, 16, 25, 46, 62, 85, 104, 121, 126, 133, 153, 159, 161};
+uint16_t golomb_freq[] = {2400, 2406, 2407, 2408, 2412, 2423, 2431, 2442, 2452, 2460, 2463, 2466, 2476, 2479, 2480};
+uint8_t  golomb_offset[] = {1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1};
+
 
 #if PMP_GPIO_DEBUG
 	#define VESNA_GPIO(state)                   \
@@ -172,7 +180,7 @@ rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
     rf233_register_restore();                           // Restore the radio registers
     regWrite(RG_TRX_STATE, TRX_CMD_RX_ON);              // Put the radio back to ON state 
 
-    for(uint8_t i=0; i<PMU_MEASUREMENT_SIZE; i++){
+    for(uint8_t i=0; i<PMP_MEASUREMENT_SIZE; i++){
         phase[i] = phases[i];
     }
 
@@ -198,8 +206,8 @@ rf233_test_CW(void){
 
     vsnTime_delayS(2);
 
-    freq = FREQ;
-    offset = 1;
+    uint16_t freq = FREQ;
+    uint8_t offset = 1;
 
     // Configure the radio for CW
     regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);

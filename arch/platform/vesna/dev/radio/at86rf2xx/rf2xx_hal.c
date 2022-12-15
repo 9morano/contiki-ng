@@ -279,7 +279,7 @@ inline static vsnSPI_ErrorStatus
 REGREAD(uint8_t addr, uint8_t *value)
 {
     vsnSPI_ErrorStatus status;
-    int_master_status_t intStatus;
+    int_master_status_t intStatus = 0;
 
     // Clear chip-select if it was not cleared
     status = clearCS();
@@ -309,7 +309,7 @@ inline static vsnSPI_ErrorStatus
 REGWRITE(uint8_t addr, const uint8_t value)
 {
     vsnSPI_ErrorStatus status;
-    int_master_status_t intStatus;
+    int_master_status_t intStatus = 0;
     uint8_t dummy __attribute__((unused));
 
     status = clearCS();
@@ -339,7 +339,7 @@ inline static vsnSPI_ErrorStatus
 FIFOREAD(rxFrame_t *frame)
 {
     vsnSPI_ErrorStatus status;
-    int_master_status_t intStatus;
+    int_master_status_t intStatus = 0;
     rf2xx_irq_t irq;
     uint8_t dummy __attribute__((unused));
 
@@ -409,7 +409,7 @@ inline static vsnSPI_ErrorStatus
 FIFOWRITE(txFrame_t *frame)
 {
     vsnSPI_ErrorStatus status;
-    int_master_status_t intStatus;
+    int_master_status_t intStatus = 0;
     uint8_t dummy __attribute__((unused));
 
     status = clearCS();

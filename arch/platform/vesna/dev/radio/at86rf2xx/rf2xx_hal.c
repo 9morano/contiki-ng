@@ -95,6 +95,7 @@ rf2xx_initHW(void)
 	#if VESNA_BOARD_SNR
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	#endif
 
 	// If AT86RF2xx radio is on ISTMV v1.0 board
@@ -155,6 +156,11 @@ rf2xx_initHW(void)
 	GPIO_InitStructure.GPIO_Pin = RSTN_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_Init(RSTN_PORT, &GPIO_InitStructure);
+
+    // Test GPIO
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
 	setRST(); // hold radio in reset state
 	clearCS(); // clear chip select (default)

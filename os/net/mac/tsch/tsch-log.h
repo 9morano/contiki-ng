@@ -84,7 +84,11 @@ struct tsch_log_t {
   uint8_t channel;
   uint8_t channel_offset;
   union {
+#if TSCH_WITH_PMP
+    char message[70];
+#else
     char message[48];
+#endif /* TSCH_WITH_PMP */
     struct {
       int mac_tx_status;
       linkaddr_t dest;

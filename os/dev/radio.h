@@ -778,6 +778,24 @@ struct radio_driver {
    */
   radio_result_t (* set_object)(radio_param_t param, const void *src,
                                 size_t size);
+
+  /**
+   * Perform a phase measurement process (PMP).
+   * \param role The role of the device, wether INIT = 0 or REF = 1
+   * \param channel current TSCH channel.
+   * \param data A pointer to a buffer where the measured data is stored.
+   * \return An indicator of success.
+   *
+   * This function adds the phase measurement process to the communication, 
+   * currently only implemented in TSCH MAC mode. The radio must include
+   * the PMU module, which enables to measure the phase of the incoming signal.
+   *
+   * This function can be called after the reception/transmission of DATA packet
+   * or ACK packet. It should configure the radio to create the PMP and afterwards
+   * restore the radio to previous state. The radio buffer is emptied durring the
+   * PMP routine, therefore it should be processed before calling the function.
+   */
+  int (* measure_phase)(unsigned char role, unsigned char channel, unsigned char *data);
 };
 /** @} */
 /*---------------------------------------------------------------------------*/

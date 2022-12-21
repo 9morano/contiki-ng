@@ -92,7 +92,7 @@ tsch_packet_eackbuf_attr(uint8_t type)
 int
 tsch_packet_create_eack(uint8_t *buf, uint16_t buf_len,
                         const linkaddr_t *dest_addr, uint8_t seqno,
-                        int16_t drift, int nack)
+                        int16_t drift, int nack, uint8_t *phase)
 {
   frame802154_t params;
   struct ieee802154_ies ies;
@@ -137,9 +137,19 @@ tsch_packet_create_eack(uint8_t *buf, uint16_t buf_len,
   ies.ie_time_correction = drift;
   ies.ie_is_nack = nack;
 
+#if TSCH_WITH_PMP
+  for(uint8_t i=0; i<15; i++){
+    ies.ie_phase[i] = phase[i];
+  }
+  ack_len =
+    frame80215e_create_ie_header_ack_nack_time_correction_phase(buf + hdr_len,
+                                                          buf_len - hdr_len, &ies);
+#else
   ack_len =
     frame80215e_create_ie_header_ack_nack_time_correction(buf + hdr_len,
                                                           buf_len - hdr_len, &ies);
+#endif /* TSCH_WITH_PMP */
+
   if(ack_len < 0) {
     return -1;
   }

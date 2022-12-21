@@ -90,12 +90,21 @@ struct ieee802154_ies {
   const uint8_t *sixtop_ie_content_ptr;
   uint16_t sixtop_ie_content_len;
 #endif /* TSCH_WITH_SIXTOP */
+#if TSCH_WITH_PMP
+  /* Phase Measurement */
+  uint8_t ie_phase[15];
+#endif
 };
 
 /** Insert various Information Elements **/
 /* Header IE. ACK/NACK time correction. Used in enhanced ACKs */
 int frame80215e_create_ie_header_ack_nack_time_correction(uint8_t *buf, int len,
     struct ieee802154_ies *ies);
+#if TSCH_WITH_PMP
+/* Header IE. ACK/NACK time correction with Phase measurement data. Used in enhanced ACKs */
+int frame80215e_create_ie_header_ack_nack_time_correction_phase(uint8_t *buf, int len,
+    struct ieee802154_ies *ies);
+#endif /* TSCH_WITH_PMP*/
 /* Header IE. List termination 1 (Signals the end of the Header IEs when
  * followed by payload IEs) */
 int frame80215e_create_ie_header_list_termination_1(uint8_t *buf, int len,

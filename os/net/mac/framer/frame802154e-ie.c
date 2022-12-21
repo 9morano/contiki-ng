@@ -56,6 +56,7 @@ enum ieee802154e_header_ie_id {
   HEADER_IE_LOW_LATENCY_NETWORK_INFO,
   HEADER_IE_LIST_TERMINATION_1 = 0x7e,
   HEADER_IE_LIST_TERMINATION_2 = 0x7f,
+  HEADER_IE_PHASE_MEASUREMENT = 0x1f,
 };
 
 /* c.f. IEEE 802.15.4e Table 4c */
@@ -155,6 +156,40 @@ frame80215e_create_ie_header_ack_nack_time_correction(uint8_t *buf, int len,
     return -1;
   }
 }
+
+#if TSCH_WITH_PMP
+/* Header IE. ACK/NACK time correction. Phase measurement data. Used in enhanced ACKs */
+int
+frame80215e_create_ie_header_ack_nack_time_correction_phase(uint8_t *buf, int len,
+    struct ieee802154_ies *ies)
+{
+  int ie_drift_len = 2;
+  int ie_phase_len = 15;
+  if(len >= 2 + ie_drift_len + 2 + ie_phase_len && ies != NULL) {
+
+    /* Create Time Correction Header IE */
+    int16_t drift_us;
+    uint16_t time_sync_field;
+    drift_us = ies->ie_time_correction;
+    time_sync_field = drift_us & 0x0fff;
+    if(ies->ie_is_nack) {
+      time_sync_field |= 0x8000;
+    }
+    WRITE16(buf+2, time_sync_field);
+    create_header_ie_descriptor(buf, HEADER_IE_ACK_NACK_TIME_CORRECTION, ie_drift_len);
+
+    /* Create Phase Measurement Header IE */
+    create_header_ie_descriptor(buf+4, HEADER_IE_PHASE_MEASUREMENT, ie_phase_len);
+    for(uint8_t i=0; i<ie_phase_len; i++){
+      buf[i+6] = ies->ie_phase[i];
+    }
+
+    return 2 + ie_drift_len + 2 + ie_phase_len;
+  } else {
+    return -1;
+  }
+}
+#endif /* TSCH_WITH_PM */
 
 /* Header IE. List termination 1 (Signals the end of the Header IEs when
  * followed by payload IEs) */
@@ -371,6 +406,20 @@ frame802154e_parse_header_ie(const uint8_t *buf, int len,
         return len;
       }
       break;
+
+#if TSCH_WITH_PMP
+      case HEADER_IE_PHASE_MEASUREMENT:
+      if(len == 15) {
+        if(ies != NULL) {
+          /* Extract phase measurement from neighbour */
+          for(uint8_t i=0; i<15; i++){
+            ies->ie_phase[i] = buf[i];
+          }
+        }
+        return len;
+      }
+      break;
+#endif /* TSCH_WITH_PMP */
   }
   return -1;
 }

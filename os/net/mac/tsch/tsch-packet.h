@@ -56,11 +56,12 @@
  * \param seqno The sequence number we are ACKing
  * \param drift The time offset in usec measured at Rx of the packer we are ACKing
  * \param nack Value of the NACK bit
+ * \param phase A pointer to the measured phase data
  * \return The length of the packet that was created. -1 if failure.
  */
 int tsch_packet_create_eack(uint8_t *buf, uint16_t buf_size,
                             const linkaddr_t *dest_addr, uint8_t seqno,
-                            int16_t drift, int nack);
+                            int16_t drift, int nack, uint8_t *phase);
 /**
  * \brief Parse enhanced ACK packet
  * \param buf The buffer where to parse the EACK from

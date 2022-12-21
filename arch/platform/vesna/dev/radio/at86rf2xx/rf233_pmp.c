@@ -13,7 +13,7 @@
 #define LOG_MODULE  "PMP"
 #define LOG_LEVEL   LOG_LEVEL_INFO
 
-//#if RF233_PMU
+#if AT86RF233
 
 // Golomb ruler
 // Thanks to: O. Oshiga, A. Ghods, S. Severi, and G. Abreu, “Efficient Slope Sampling Ranging and Trilateration Techniques for Wireless Localization”
@@ -310,4 +310,4 @@ rf233_test_PMU(void){
 
 }
 
-//#endif
+#endif

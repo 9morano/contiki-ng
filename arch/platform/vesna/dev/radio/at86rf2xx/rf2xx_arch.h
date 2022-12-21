@@ -59,10 +59,16 @@
 #define RF2XX_CONF_RADIO_ON_DURING_TIMESLOT (1)
 
 
-// TSCH timeslot timing of VESNA devices (defined in rf2xx_tsch.c)
-// (default is: 10ms tsch_timeslot_timing_us_10000)
-extern const uint16_t tsch_timeslot_timing_rf2xx_10000us_250kbps[];
-#define RF2XX_CONF_DEFAULT_TIMESLOT_TIMING	(tsch_timeslot_timing_rf2xx_10000us_250kbps)
+#if TSCH_WITH_PMP
+    // TSCH timeslot timing with included PMP
+    extern const uint16_t tsch_timeslot_timing_rf2xx_20000us_250kbps_with_pmp[];
+    #define RF2XX_DEFAULT_TIMESLOT_TIMING	(tsch_timeslot_timing_rf2xx_20000us_250kbps_with_pmp)
+#else
+    // TSCH timeslot timing of VESNA devices (defined in rf2xx_tsch.c)
+    // (default is: 10ms tsch_timeslot_timing_us_10000)
+    extern const uint16_t tsch_timeslot_timing_rf2xx_10000us_250kbps[];
+    #define RF2XX_DEFAULT_TIMESLOT_TIMING	(tsch_timeslot_timing_rf2xx_10000us_250kbps)
+#endif
 
 #endif
 /* ---------------------------------------------------------------- */

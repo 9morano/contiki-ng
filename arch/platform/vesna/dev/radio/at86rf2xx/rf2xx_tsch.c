@@ -66,3 +66,18 @@ const tsch_timeslot_timing_usec tsch_timeslot_timing_rf2xx_10000us_250kbps = {
    4256, // MaxTx 
   10000, // TimeslotLength 
 };
+
+const tsch_timeslot_timing_usec tsch_timeslot_timing_rf2xx_20000us_250kbps_with_pmp = {
+   1000,  // CCAOffset 
+    128,  // CCA 
+   2120,  // TxOffset 
+  (2120 - (TSCH_CONF_RX_WAIT / 2)), // RxOffset (TSCH_CONF_RX_WAIT default = 2200)
+   2000,  // RxAckDelay   
+   2100,  // TxAckDelay
+  TSCH_CONF_RX_WAIT, // RxWait 
+    400,  // AckWait
+    192,  // RxTx (not used)
+   2400,  // MaxAck 
+   4256,  // MaxTx 
+  20000,  // TimeslotLength 
+};

@@ -17,7 +17,6 @@
 #include "rf2xx.h"
 #include "rf2xx_arch.h"
 #include "rf2xx_stats.h"
-#include "rf233_pmu.h"
 
 #define LOG_MODULE  "rf2xx"
 #define LOG_LEVEL   LOG_LEVEL_RF2XX

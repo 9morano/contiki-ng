@@ -6,6 +6,13 @@
  */
 
 
+
+// GPIO connections:
+// CTRL 1_1 == PA4
+// CTRL 1_2 == PA5
+// CTRL 2_1 == PA6
+// CTRL 2_2 == PA7
+
 #ifndef RF233_PMP_H_
 #define RF233_PMP_H_
 
@@ -23,15 +30,16 @@
 #define PMP_FIRST_CHANNEL               (2400)
 
 // Number of sampled phases in one PMP
-#define PMP_MEASUREMENT_SIZE            (15)
+#define MEASUREMENT_COUNT               (5)
 
+#define ANTENNA_COUNT                   (12)
 
 
 // Struct to store the measurements (obsolete)
 typedef struct {
     uint8_t channel;
     uint8_t sqn;
-    uint8_t data[PMP_MEASUREMENT_SIZE];
+    uint8_t data[MEASUREMENT_COUNT];
 } pmuData_t;
 
 
@@ -109,6 +117,16 @@ void rf233_read_phase(uint8_t *data);
  *     This function sets the PLL of a radio to desired freq.
  */
 void rf233_set_frequency(uint16_t f, uint8_t o);
+
+
+
+
+
+
+void rf233_select_antenna(uint8_t antenna_num);
+void rf233_antenna_sequence(uint8_t num);
+void rf233_read_phases(uint8_t *data, uint8_t count);
+void rf233_gpio(uint8_t num);
 
 /**
  * \brief      The phase measurement process (PMP).

@@ -25,9 +25,9 @@ uint8_t  golomb_offset[] = {1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1};
 #if PMP_GPIO_DEBUG
 	#define VESNA_GPIO(state)                   \
         if(state){                              \
-            GPIO_SetBits(GPIOA, GPIO_Pin_5);    \
+            GPIO_SetBits(GPIOA, GPIO_Pin_2);    \
         } else{                                 \
-            GPIO_ResetBits(GPIOA, GPIO_Pin_5);  \
+            GPIO_ResetBits(GPIOA, GPIO_Pin_2);  \
         }
 #else
 	#define VESNA_GPIO(state) 
@@ -111,11 +111,17 @@ rf233_set_frequency(uint16_t f, uint8_t o){
 /*------------------------------------------------------------------------------------------*/
 void
 rf233_transmit(uint32_t duration){
-    VESNA_GPIO(1);
     regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON);
     regWrite(RG_TRX_STATE, TRX_CMD_TX_START);
-    vsnTime_delayUS(duration);
-    VESNA_GPIO(0);
+    uint32_t transmit_start = RTIMER_NOW();
+    while((RTIMER_NOW() - transmit_start) < duration){
+        //if(bitRead(SR_TRX_STATUS) != TRX_STATUS_BUSY_TX){
+        //    regWrite(RG_TRX_STATE, TRX_CMD_TX_START);
+        //}
+        //regWrite(RG_TRX_STATE, TRX_CMD_TX_START);
+        setSLPTR();
+        clearSLPTR();
+    }
 }
 /*------------------------------------------------------------------------------------------*/
 void 
@@ -127,64 +133,208 @@ rf233_read_phase(uint8_t *data){
     VESNA_GPIO(0);
 }
 
+
+
+/*------------------------------------------------------------------------------------------*//*------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------*//*------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------------------*//*------------------------------------------------------------------------------------------*/
+void 
+rf233_read_phases(uint8_t *data, uint8_t count){
+    // Curent SPI setup requires up to 7.9 us to obtain a register value (compiler optimization must be on = 1)
+    // But PMU updates it every 8 us - it might happen that we get two same values
+    uint8_t delay;
+    for(uint8_t i=0; i<count; i++){
+        VESNA_GPIO(1);
+        data[i] = regRead(RG_PHY_PMU_VALUE);
+        VESNA_GPIO(0);
+    }
+}
+
+
+// Map antenna numbers from 0 to 11 to antennas 1_1 to 3_4
+// Not tested TODO
+void
+rf233_select_antenna(uint8_t antenna){
+
+    // Default is antenna 1_1
+    if(antenna < 0){
+        GPIO_SetBits(GPIOA, GPIO_Pin_4);
+        GPIO_ResetBits(GPIOA, GPIO_Pin_5);
+        GPIO_ResetBits(GPIOA, GPIO_Pin_6);
+        GPIO_ResetBits(GPIOA, GPIO_Pin_7);
+        return;
+    }
+    // Mapping
+    if(antenna < 6){
+        GPIO_SetBits(GPIOA, GPIO_Pin_4);
+    }
+    else {
+        GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+        antenna -= 6;
+    }
+    if(antenna > 2){
+        GPIO_SetBits(GPIOA, GPIO_Pin_5);
+        antenna -= 3;
+    }
+    else{
+        GPIO_ResetBits(GPIOA, GPIO_Pin_5);
+    }
+    if(antenna == 2){
+        GPIO_SetBits(GPIOA, GPIO_Pin_6);
+    }
+    else{
+        GPIO_ResetBits(GPIOA, GPIO_Pin_6);
+    }
+    if(antenna > 0){
+        GPIO_SetBits(GPIOA, GPIO_Pin_7);
+    }
+    else{
+        GPIO_ResetBits(GPIOA, GPIO_Pin_7);
+    }
+}
+
+// sequence for AoA - cycle through opposing antennas 
+// 1_1 --> 1_3 --> 2_1 --> 2_3 --> 3_1 --> 3_3 --> 1_2 --> 1_4 and so on
+// Tested, working TODO: zbrisi
+void
+rf233_antenna_sequence(uint8_t num){
+    if((num & 0x1) == 0){
+        GPIO_SetBits(GPIOA, GPIO_Pin_4);
+    } else {
+        GPIO_ResetBits(GPIOA, GPIO_Pin_4);
+    }
+    num = num >> 1;
+    if(num > 2){
+        GPIO_SetBits(GPIOA, GPIO_Pin_5);
+        num -= 3;
+    } else {
+        GPIO_ResetBits(GPIOA, GPIO_Pin_5);
+    }
+    if(num == 2){
+        GPIO_SetBits(GPIOA, GPIO_Pin_6);
+    } else {
+        GPIO_ResetBits(GPIOA, GPIO_Pin_6);
+    }
+    if (num > 0){
+        GPIO_SetBits(GPIOA, GPIO_Pin_7);
+    } else {
+        GPIO_ResetBits(GPIOA, GPIO_Pin_7);
+    }
+}
+
+void
+rf233_gpio(uint8_t num){
+    if(num){
+        GPIO_SetBits(GPIOA, GPIO_Pin_2);
+    }
+    else{
+        GPIO_ResetBits(GPIOA, GPIO_Pin_2);
+    }
+    return 1;
+}
+
 /*------------------------------------------------------------------------------------------*/
 int 
 rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
 
-    //uint16_t start = RTIMER_NOW();
-    uint16_t freq, freq_f, freq_o;
+    uint16_t start = RTIMER_NOW();
 
-    uint8_t phases[PMP_MEASUREMENT_SIZE] = {0};    
+    uint16_t freq = 2405 + (5 * (channel - 11));
 
-    rf233_prepare_for_PMP();                            // Prepare the radio for PMP
-    
+    uint8_t phases[ANTENNA_COUNT * MEASUREMENT_COUNT] = {0};
+
+    rf233_prepare_for_PMP();                            // Prepare the radio for PMP -> duration 72~73 = 1100 us
+
     if(role == 0){  // INITIATOR
 
         bitWrite(SR_PMU_IF_INVERSE, 0);                 // Disable inverse IF
         bitWrite(SR_TX_RX, 0);                          // RX PLL frequency = 0
-        vsnTime_delayUS(20);                            // Sync delay (might differ for different uC)
 
-        for(uint8_t f=0; f<PMP_MEASUREMENT_SIZE; f++){
-            freq = golomb_ruler[f];
-            freq_f = freq / 2;
-            freq_o = freq & 0x0001;
-            
-            rf233_set_frequency((PMP_FIRST_CHANNEL + freq_f), freq_o);
-            vsnTime_delayUS(16);                        // Allow freq to settle (from datasheet)
-            vsnTime_delayUS(PMP_GUARD_TIME);            // Guard time delay
-            rf233_read_phase(phases + f);               // Read phase sample
-            vsnTime_delayUS(PMP_TRANSITION_TIME);       // Wait for other
-            rf233_transmit(PMP_GUARD_TIME + 60);        // Transmit CW
-        }      
+        rf233_set_frequency(freq, 0);
+        vsnTime_delayUS(16);                            // Allow freq to settle (from datasheet)
+
+        vsnTime_delayUS(PMP_GUARD_TIME);                // Guard time delay (to be in sync with the other)
+        vsnTime_delayUS(PMP_GUARD_TIME);                // Added second just in case :)
+
+        regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON); 
+        regWrite(RG_TRX_STATE, TRX_CMD_RX_ON); 
+
+          for(uint8_t a=0; a<ANTENNA_COUNT; a++){
+            rf233_select_antenna(a);                    // Select appropriate antenna
+
+            //vsnTime_delayUS(1);                       // RF Switch delay 
+
+            GPIO_SetBits(GPIOA, GPIO_Pin_1);
+            // Delay for 8us 
+            // vsnTime_delayUS() is not accurate for small delays - it takes up to 6us just to enter the function
+            // Therefore the delay is realized with a simple loop. Compiler optimizations must be ON!...
+            // And since they are on, there is a dummy if state in the loop to avoid optimizations here.
+            // Actual delay of the loop is: 5.4
+            // But together with antenna switching it is: 8 us
+            uint32_t i = 0; 
+            while(i < 35){ i++;
+                if(i == 33)i++;
+            }
+   
+            GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+
+            rf233_read_phases(phases + a*MEASUREMENT_COUNT, MEASUREMENT_COUNT);        // Read the phase samples
+        }
+
+        //Select default antenna
+        rf233_select_antenna(-1);
     }
     else            // REFLECTOR
-    {                                           
-        bitWrite(SR_PMU_IF_INVERSE, 1);                 // Enable inverse IF
+    {                 
+        bitWrite(SR_PMU_IF_INVERSE, 1);                 // Disable inverse IF
         bitWrite(SR_TX_RX, 1);                          // TX PLL frequency = 1
 
-        for(uint8_t f=0; f<PMP_MEASUREMENT_SIZE; f++){
-            freq = golomb_ruler[f] + 1;                 // Add 0.5 MHz
-            freq_f = freq / 2;
-            freq_o = freq & 0x0001;
-            
-            rf233_set_frequency((PMP_FIRST_CHANNEL + freq_f), freq_o);
-            vsnTime_delayUS(16);                        // Allow freq to settle (from datasheet)
-            rf233_transmit(PMP_GUARD_TIME + 60);        // Transmit CW
-            vsnTime_delayUS(PMP_TRANSITION_TIME);       // Wait for the other
-            rf233_read_phase(phases + f);               // Read phase sample
-            vsnTime_delayUS(PMP_GUARD_TIME);            // Guard time delay (to be in sync with the other)
-        }
+        rf233_set_frequency(freq, 1);
+        vsnTime_delayUS(16);                            // Allow freq to settle (from datasheet)
+
+        VESNA_GPIO(1);
+        rf233_transmit(200);    
+        VESNA_GPIO(0);                     
+
     }
+
+
+    /*  2 antenne
+        Transmit CW (500 za 15 damplov, 2 antene + 300 guarda za switch) = 90 tickov
+
+        Če se ne mwtm, traja dobivanje enega sempla tm 32us
+        Če mam 3 semple na anteno --> 1152 us
+        če mam 6 semplu na antenno --> 2304 us
+    */
 
     regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);      
     rf233_register_restore();                           // Restore the radio registers
     regWrite(RG_TRX_STATE, TRX_CMD_RX_ON);              // Put the radio back to ON state 
 
-    for(uint8_t i=0; i<PMP_MEASUREMENT_SIZE; i++){
-        phase[i] = phases[i];
-    }
 
+
+    printf("\n");
+
+
+    if(role == 0){
+        for(uint8_t a=0; a<ANTENNA_COUNT; a++){
+            printf("%d = ", a);
+            for(uint8_t i=0; i<MEASUREMENT_COUNT; i++){
+                printf("%d,", phases[i + a * MEASUREMENT_COUNT]);
+            }
+            printf("\n");
+        }
+    }
+    
+     
+    /*if(role == 0){
+        for(uint8_t i=0; i<ANTENNA_COUNT*MEASUREMENT_COUNT; i++){
+            phase[i] = phases[i];
+        }
+    }*/
+    //while(RTIMER_NOW() - start < 250);
     //printf("PMP routine duration %d\n", RTIMER_NOW() - start);
+
     return 1;
 }
 
@@ -199,7 +349,7 @@ rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
 /* Functions for testing purposes */
 /*------------------------------------------------------------------------------------------*/
 
-uint16_t FREQ = 2344;
+uint16_t FREQ = 2400;
 /*------------------------------------------------------------------------------------------*/
 void
 rf233_test_CW(void){
@@ -207,7 +357,7 @@ rf233_test_CW(void){
     vsnTime_delayS(2);
 
     uint16_t freq = FREQ;
-    uint8_t offset = 1;
+    uint8_t offset = 0;
 
     // Configure the radio for CW
     regWrite(RG_TRX_STATE, TRX_CMD_FORCE_TRX_OFF);
@@ -215,7 +365,7 @@ rf233_test_CW(void){
     bitWrite(SR_TOM_EN, 0);                     // Enable PMU unit
     bitWrite(SR_PMU_EN, 1);
 
-    bitWrite(SR_TX_PWR, 0xD);                   // Set output power to max (0x00)
+    bitWrite(SR_TX_PWR, 0x0);                   // Set output power to max (0x00)
     bitWrite(SR_TX_AUTO_CRC_ON, 0);             // Disable TX_AUTO_CRC_ON
 
     bitWrite(SR_MOD_SEL, 1);		            // Manual control of modulation data

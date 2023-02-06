@@ -45,7 +45,8 @@
 
 
 // Maximum supported speed is 8MHz
-#define RF2XX_SPI_SPEED		((uint32_t)8000000)
+// However, there seems to be a prescaler on SPI and 16MHz works as 8MHz :)
+#define RF2XX_SPI_SPEED		((uint32_t)16000000)
 
 
 

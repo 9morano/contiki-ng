@@ -106,6 +106,10 @@ rf2xx_init(void)
 {
     LOG_DBG("%s\n", __func__);
 
+    // Select default antenna
+    rf233_select_antenna(-1);
+    rf233_gpio(0);
+
     // Initialize I/O
     rf2xx_initHW();
 
@@ -908,6 +912,7 @@ const struct radio_driver rf2xx_driver = {
 #if TSCH_WITH_PMP
     .measure_phase = rf233_phase_measurement_process,
 #endif
+.gpio = rf233_gpio,
 };
 
 

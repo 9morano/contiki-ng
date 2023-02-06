@@ -75,8 +75,9 @@ static SPI_InitTypeDef rf2xxSpiConfig = {
     .SPI_CPOL = SPI_CPOL_Low,
     .SPI_CPHA = SPI_CPHA_1Edge,
     .SPI_NSS = SPI_NSS_Soft,
+    //.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4,
     .SPI_FirstBit = SPI_FirstBit_MSB,
-    .SPI_CRCPolynomial = 7,
+    .SPI_CRCPolynomial = 0,
 };
 
 static void
@@ -157,8 +158,36 @@ rf2xx_initHW(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_Init(RSTN_PORT, &GPIO_InitStructure);
 
+
+
     // Test GPIO
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    // Test GPIO
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+
+    // Antenna Select 1_1 == PA4
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    // Antenna Select 1_2 == PA5
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    // Antenna Select 2_1 == PA6
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    // Antenna Select 2_2 == PA7
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
@@ -281,6 +310,17 @@ REGREAD(uint8_t addr, uint8_t *value)
     vsnSPI_ErrorStatus status;
     int_master_status_t intStatus = 0;
 
+    intStatus = critical_enter();
+    GPIO_ResetBits(CSN_PORT, CSN_PIN);
+    status = vsnSPILow_readRegister_fast(rf2xxSPI, ((addr & CMD_REG_MASK) | CMD_REG_ACCESS | CMD_READ), value);
+    GPIO_SetBits(CSN_PORT, CSN_PIN);
+    critical_exit(intStatus);
+    if (status != VSN_SPI_SUCCESS) LOG_WARN("register read error (0x%02x)\n", addr);
+    return status;
+
+// Old way of SPI register access took up to 32us for a single register read...
+// The new method takes up to 7.5 us
+/*  
     // Clear chip-select if it was not cleared
     status = clearCS();
     if (status != VSN_SPI_SUCCESS) goto error; // goto is considered bad practice, however it is OK for small cases
@@ -302,6 +342,7 @@ error:
     critical_exit(intStatus);
     if (status != VSN_SPI_SUCCESS) LOG_WARN("register read error (0x%02x)\n", addr);
     return status;
+*/
 }
 
 
@@ -312,9 +353,19 @@ REGWRITE(uint8_t addr, const uint8_t value)
     int_master_status_t intStatus = 0;
     uint8_t dummy __attribute__((unused));
 
+    intStatus = critical_enter();
+    GPIO_ResetBits(CSN_PORT, CSN_PIN);
+    status = vsnSPILow_writeRegister_fast(rf2xxSPI, ((addr & CMD_REG_MASK) | CMD_REG_ACCESS | CMD_WRITE), value);
+    GPIO_SetBits(CSN_PORT, CSN_PIN);
+    critical_exit(intStatus);
+    if (status != VSN_SPI_SUCCESS) LOG_WARN("register write error (0x%02x)\n", addr);
+    return status;
+
+
+// Old way of SPI register access took up to 32us for a single register write...
+/*  
     status = clearCS();
     if (status != VSN_SPI_SUCCESS) goto error; // goto is considered bad practice, however it is OK for small cases
-
     intStatus = critical_enter();
 
     // start SPI communication
@@ -332,6 +383,7 @@ error:
     critical_exit(intStatus);
     if (status != VSN_SPI_SUCCESS) LOG_WARN("register write error (0x%02x)\n", addr);
     return status;
+*/
 }
 
 

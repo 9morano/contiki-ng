@@ -796,6 +796,8 @@ struct radio_driver {
    * PMP routine, therefore it should be processed before calling the function.
    */
   int (* measure_phase)(unsigned char role, unsigned char channel, unsigned char *data);
+
+  int (* gpio)(unsigned char state);
 };
 /** @} */
 /*---------------------------------------------------------------------------*/

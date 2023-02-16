@@ -152,41 +152,6 @@ rf2xx_prepare(const void *payload, unsigned short payload_len)
     // LOG_DBG("calculated CRC 0x%04x \n", *txFrame.crc);
 #endif
 
-    // Go to PLL_ON state
-again:
-    trxState = bitRead(SR_TRX_STATUS);
-    switch (trxState) {
-        case TRX_STATUS_STATE_TRANSITION:
-            goto again;
-
-        case TRX_STATUS_BUSY_RX:
-        case TRX_STATUS_BUSY_RX_AACK:
-        case TRX_STATUS_BUSY_TX:
-        case TRX_STATUS_BUSY_TX_ARET:
-            LOG_WARN("TR-Interrupted busy state %d \n", trxState);
-
-        case TRX_STATUS_RX_AACK_ON:
-        case TRX_STATUS_RX_ON:
-        case TRX_STATUS_TX_ARET_ON:
-        case TRX_STATUS_TRX_OFF:
-
-            regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON);
-            if (bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION) {
-                goto again;
-            }
-
-        case TRX_STATUS_TX_ON:
-
-            // Allready in proper state
-            ENERGEST_ON(ENERGEST_TYPE_TRANSMIT);
-            flags.value = 0;
-            break;
-
-        default: // Unknown state
-            LOG_ERR("Radio in state: 0x%02x\n", trxState);
-            RF2XX_STATS_ADD(txError);
-            return RADIO_TX_ERR;
-    }
 
     return RADIO_TX_OK;
 }
@@ -196,6 +161,10 @@ int
 rf2xx_transmit(unsigned short transmit_len)
 {
     LOG_DBG("%s\n", __func__);
+
+    regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON);
+    while(bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION){}
+    flags.value = 0;
 
     uint8_t trxState;
 

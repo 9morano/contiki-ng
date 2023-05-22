@@ -68,6 +68,8 @@ PROCESS_THREAD(udp_server_process, ev, data)
 {
   PROCESS_BEGIN();
 
+  LOG_INFO("Starting as server\n");
+
   /* Initialize DAG root */
   NETSTACK_ROUTING.root_start();
 

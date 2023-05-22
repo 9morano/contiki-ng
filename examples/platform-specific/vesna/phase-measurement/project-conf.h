@@ -8,7 +8,7 @@
 #define LOG_CONF_LEVEL_RPL                         LOG_LEVEL_WARN
 #define LOG_CONF_LEVEL_6LOWPAN                     LOG_LEVEL_WARN
 #define LOG_CONF_LEVEL_TCPIP                       LOG_LEVEL_WARN
-#define LOG_CONF_LEVEL_MAC                         LOG_LEVEL_WARN
+#define LOG_CONF_LEVEL_MAC                         LOG_LEVEL_INFO
 #define LOG_CONF_LEVEL_FRAMER                      LOG_LEVEL_WARN
 #define LOG_CONF_LEVEL_RF2XX                       LOG_LEVEL_INFO
 #define TSCH_LOG_CONF_PER_SLOT                     (1)
@@ -17,7 +17,8 @@
 #define UART1_CONF_BAUDRATE                        (460800)
 #define WATCHDOG_CONF_ENABLED                      (0)
 
-#define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE          (uint8_t[]){11}
+#define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE          (uint8_t[]){11, 15, 20, 26}
+//#define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE          (uint8_t[]){11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26}
 
 // Enable the phase measurement process
 #define TSCH_CONF_WITH_PMP                          (1)

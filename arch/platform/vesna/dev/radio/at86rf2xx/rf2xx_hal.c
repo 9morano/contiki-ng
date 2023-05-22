@@ -292,6 +292,10 @@ rf2xx_reset(void)
     // TODO: check if needed (CSMA works with this..)
     bitWrite(SR_AACK_FVN_MODE, 2);
 
+
+    // enable TOF module (for freq drift measurement)
+    bitWrite(SR_TOM_EN, 1);
+
 	// Enable only specific IRQs
 	regWrite(RG_IRQ_MASK, DEFAULT_IRQ_MASK);
 
@@ -495,6 +499,26 @@ error:
     critical_exit(intStatus);
     if (status != VSN_SPI_SUCCESS) LOG_WARN("Frame write error\n");
     return status;
+}
+
+
+uint8_t
+sramRead(uint8_t addr){
+    uint8_t data = 5;
+    int_master_status_t intStatus = 0;
+    uint8_t dummy __attribute__((unused));
+
+    intStatus = critical_enter();
+
+    setCS();
+    vsnSPI_pullByteTXRX(rf2xxSPI, (CMD_SR_ACCESS | CMD_READ), &dummy);
+    vsnSPI_pullByteTXRX(rf2xxSPI, addr, &dummy);
+    vsnSPI_pullByteTXRX(rf2xxSPI, 0x00, &data);
+
+    clearCS();
+    critical_exit(intStatus);
+
+    return data;
 }
 
 uint8_t

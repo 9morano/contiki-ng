@@ -296,6 +296,21 @@ int rf2xx_read(void *buf, unsigned short buf_len)
     memcpy(buf, rxFrame.content, rxFrame.len);
     rxFrame.len = 0;
 
+    // Packet length must be below 114, otherwise the data is overwritten by the frame
+    /*
+    if(rxFrame.len < 114){
+        int8_t freq_drift = 0;
+        freq_drift = sramRead(0x7C);
+        //freq_drift = (~freq_drift) + 1;
+
+        printf("Freq drift = %d ", freq_drift);
+        int16_t drift = freq_drift * 3906;
+        printf("(%d Hz) \n", drift);
+
+        //printf("TOM enabled %d \n", regRead(0x03));
+    }
+    */
+
     critical_exit(status);
 
     LOG_DBG("Got %u bytes\n", frame_len);

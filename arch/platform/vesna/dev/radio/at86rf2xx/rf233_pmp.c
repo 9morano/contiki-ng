@@ -234,6 +234,7 @@ rf233_gpio(uint8_t num){
 }
 
 /*------------------------------------------------------------------------------------------*/
+// vsnTimeDelay function is quite lousy - each delayUS is actually 6us longer than expected
 int 
 rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
 
@@ -241,7 +242,8 @@ rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
 
     uint16_t freq = 2405 + (5 * (channel - 11));
 
-    uint8_t phases[ANTENNA_COUNT * MEASUREMENT_COUNT] = {0};
+    uint8_t phases[ANTENNA_COUNT * 5] = {0};
+
 
     rf233_prepare_for_PMP();                            // Prepare the radio for PMP -> duration 72~73 = 1100 us
 
@@ -259,26 +261,18 @@ rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
         regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON); 
         regWrite(RG_TRX_STATE, TRX_CMD_RX_ON); 
 
-          for(uint8_t a=0; a<ANTENNA_COUNT; a++){
-            rf233_select_antenna(a);                    // Select appropriate antenna
+        uint8_t cnt = 0;
+        for (uint8_t krog = 0; krog < 5; krog++){
+            for(uint8_t a=0; a<ANTENNA_COUNT; a++){
+                rf233_select_antenna(a);                    // Select appropriate antenna (lasts for 2.5 us)
+                uint8_t i = 0; 
+                while(i < 82){ i++;
+                    if(i == 42)i++;
+                }
 
-            //vsnTime_delayUS(1);                       // RF Switch delay 
-
-            GPIO_SetBits(GPIOA, GPIO_Pin_1);
-            // Delay for 8us 
-            // vsnTime_delayUS() is not accurate for small delays - it takes up to 6us just to enter the function
-            // Therefore the delay is realized with a simple loop. Compiler optimizations must be ON!...
-            // And since they are on, there is a dummy if state in the loop to avoid optimizations here.
-            // Actual delay of the loop is: 5.4
-            // But together with antenna switching it is: 8 us
-            uint32_t i = 0; 
-            while(i < 35){ i++;
-                if(i == 33)i++;
+                rf233_read_phases(phases + cnt, 1);        // Read the phase samples
+                cnt +=1;
             }
-   
-            GPIO_ResetBits(GPIOA, GPIO_Pin_1);
-
-            rf233_read_phases(phases + a*MEASUREMENT_COUNT, MEASUREMENT_COUNT);        // Read the phase samples
         }
 
         //Select default antenna
@@ -313,18 +307,18 @@ rf233_phase_measurement_process(uint8_t role, uint8_t channel, uint8_t *phase){
 
 
 
-    printf("\n");
+    printf("\nchannel = %d \n", channel);
+
 
 
     if(role == 0){
-        for(uint8_t a=0; a<ANTENNA_COUNT; a++){
-            printf("%d = ", a);
-            for(uint8_t i=0; i<MEASUREMENT_COUNT; i++){
-                printf("%d,", phases[i + a * MEASUREMENT_COUNT]);
+        printf("ant = [\n");
+            for(uint8_t i=0; i<ANTENNA_COUNT * 5; i++){
+                printf("%d,", phases[i]);
             }
-            printf("\n");
-        }
+        printf("]\n");
     }
+    
     
      
     /*if(role == 0){

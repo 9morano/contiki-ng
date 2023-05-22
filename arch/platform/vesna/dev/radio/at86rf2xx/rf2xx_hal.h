@@ -245,5 +245,7 @@ int frameRead(rxFrame_t *frame);
 // Transfer frame to the radio
 int frameWrite(txFrame_t *frame);
 
+// Testing SRAM access 
+uint8_t sramRead(uint8_t addr);
 #endif
 

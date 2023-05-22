@@ -3,6 +3,7 @@
 #include "random.h"
 #include "net/netstack.h"
 #include "net/ipv6/simple-udp.h"
+#include "dev/serial-line.h"
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -18,7 +19,8 @@ static struct simple_udp_connection udp_conn;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(udp_client_process, "UDP client");
-AUTOSTART_PROCESSES(&udp_client_process);
+PROCESS(serial_input_process, "Serial input command");
+AUTOSTART_PROCESSES(&udp_client_process, &serial_input_process);
 /*---------------------------------------------------------------------------*/
 static void
 udp_rx_callback(struct simple_udp_connection *c,
@@ -48,11 +50,13 @@ PROCESS_THREAD(udp_client_process, ev, data)
 
   PROCESS_BEGIN();
 
+  LOG_INFO("Starting as client\n");
+
   /* Initialize UDP connection */
   simple_udp_register(&udp_conn, UDP_CLIENT_PORT, NULL,
                       UDP_SERVER_PORT, udp_rx_callback);
 
-  etimer_set(&periodic_timer, random_rand() % SEND_INTERVAL);
+  etimer_set(&periodic_timer, SEND_INTERVAL);
   while(1) {
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
 
@@ -67,12 +71,24 @@ PROCESS_THREAD(udp_client_process, ev, data)
     } else {
       LOG_INFO("Not reachable yet\n");
     }
-
-    /* Add some jitter */
-    etimer_set(&periodic_timer, SEND_INTERVAL
-      - CLOCK_SECOND + (random_rand() % (2 * CLOCK_SECOND)));
+    etimer_set(&periodic_timer, SEND_INTERVAL);
   }
 
   PROCESS_END();
+}
+/*---------------------------------------------------------------------------*/
+
+PROCESS_THREAD(serial_input_process, ev, data)
+{
+    PROCESS_BEGIN();
+    while(1){
+      PROCESS_WAIT_EVENT_UNTIL(
+        (ev == serial_line_event_message) && (data != NULL));
+
+        // Echo input line
+        printf(data);
+        printf("\n");
+    }
+    PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

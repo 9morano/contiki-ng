@@ -9,10 +9,10 @@ VSNDRIVERS := ../../../../arch/platform/vesna/vesna-drivers
 TARGET=vesna
 
 # Select the extension/radio board (SNR/ISMTV_v1.1)
-VESNA_BOARD = ISMTV_v1.1
+VESNA_BOARD = SNR
 
 # Select the onboard radio
-VESNA_RADIO = AT86RF231
+VESNA_RADIO = AT86RF233
 
 
 MAKE_MAC = MAKE_MAC_TSCH

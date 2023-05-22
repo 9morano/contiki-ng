@@ -31,19 +31,25 @@
 #include "net/routing/routing.h"
 #include "net/netstack.h"
 #include "net/ipv6/simple-udp.h"
+#include "dev/serial-line.h"
+
+#include "../../../../arch/platform/vesna/dev/radio/at86rf2xx/rf2xx_stats.h"
 
 #include "sys/log.h"
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_INFO
 
-#define WITH_SERVER_REPLY  1
+#define WITH_SERVER_REPLY  0
 #define UDP_CLIENT_PORT	8765
 #define UDP_SERVER_PORT	5678
 
 static struct simple_udp_connection udp_conn;
 
 PROCESS(udp_server_process, "UDP server");
-AUTOSTART_PROCESSES(&udp_server_process);
+PROCESS(serial_input_process, "Serial input command");
+AUTOSTART_PROCESSES(&udp_server_process, &serial_input_process);
+
+//AUTOSTART_PROCESSES(&serial_input_process);
 /*---------------------------------------------------------------------------*/
 static void
 udp_rx_callback(struct simple_udp_connection *c,
@@ -54,14 +60,18 @@ udp_rx_callback(struct simple_udp_connection *c,
          const uint8_t *data,
          uint16_t datalen)
 {
-  LOG_INFO("Received request '%.*s' from ", datalen, (char *) data);
-  LOG_INFO_6ADDR(sender_addr);
-  LOG_INFO_("\n");
+  //LOG_INFO("Received request '%.*s' from ", datalen, (char *) data);
+  //LOG_INFO_6ADDR(sender_addr);
+  //LOG_INFO_("\n");
 #if WITH_SERVER_REPLY
   /* send back the same string to the client as an echo reply */
   LOG_INFO("Sending response.\n");
   simple_udp_sendto(&udp_conn, data, datalen, sender_addr);
 #endif /* WITH_SERVER_REPLY */
+
+  // Print packet stats after each received packet
+  STATS_print_packet_stats();
+
 }
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(udp_server_process, ev, data)
@@ -75,6 +85,28 @@ PROCESS_THREAD(udp_server_process, ev, data)
   simple_udp_register(&udp_conn, UDP_SERVER_PORT, NULL,
                       UDP_CLIENT_PORT, udp_rx_callback);
 
+
+  // Init driver statistics 
+  RF2XX_STATS_RESET();
+	STATS_clear_packet_stats();
+  printf("Tx [time-stamp] packet-type  dest-addr (chn len sqn | pow) BC or UC \n");
+	printf("Rx [time-stamp] packet-type  sour-addr (chn len sqn | rssi lqi) \n");
+
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
+
+PROCESS_THREAD(serial_input_process, ev, data)
+{
+    PROCESS_BEGIN();
+    while(1){
+      PROCESS_WAIT_EVENT_UNTIL(
+        (ev == serial_line_event_message) && (data != NULL));
+
+        // Echo input line
+        printf(data);
+        // Print driver stats
+        STATS_print_driver_stats();
+    }
+    PROCESS_END();
+}

@@ -46,3 +46,32 @@ else
 	                               sort -g | head -1))
 	$(BSL) $(BSL_FLAGS) $(BSL_ADDRESS_ARG) $<
 endif
+
+
+
+OPENOCD_CONFIG_DIR = $(PLATFORM_ROOT_DIR)/$(BOARD)/OpenOCD
+
+%.olimex: %.$(TARGET)
+#TODO: Add openOCD version check --> this will work only with Jim version of OpenOCD
+# as it includes flash loader and glue code for cc2538
+# More at arch/platform/openmote/openmote-b/OpenOCD/README.md
+	$(Q)openocd \
+		-f $(OPENOCD_CONFIG_DIR)/interface/olimex-arm-usb-ocd.cfg \
+		-f $(OPENOCD_CONFIG_DIR)/target/cc2538.cfg \
+		-c "init" \
+		-c "reset halt" \
+		-c "flash write_image erase $< 0 elf" \
+		-c "verify_image $< 0 elf" \
+		-c "reset run" \
+		-c "shutdown"
+
+%.olimex-h: %.$(TARGET)
+	$(Q)openocd \
+		-f $(OPENOCD_CONFIG_DIR)/interface/olimex-arm-usb-ocd-h.cfg \
+		-f $(OPENOCD_CONFIG_DIR)/target/cc2538.cfg \
+		-c "init" \
+		-c "reset halt" \
+		-c "flash write_image erase $< 0 elf" \
+		-c "verify_image $< 0 elf" \
+		-c "reset run" \
+		-c "shutdown"

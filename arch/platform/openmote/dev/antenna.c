@@ -42,6 +42,10 @@
  *
  * \file
  * Driver implementation for the OpenMote-CC2538 antenna switch
+ * 
+ * \note
+ * The same pins are used on the OpenMote-B to configure the onboard RF switch 
+ * to select between Atmel AT86RF215 and TI CC2538 radio chips.
  */
 /*---------------------------------------------------------------------------*/
 #include "contiki.h"
@@ -52,11 +56,13 @@ void
 antenna_init(void)
 {
   /* Configure the ANT1 and ANT2 GPIO as output */
+  GPIO_SOFTWARE_CONTROL(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_INT);
+  GPIO_SOFTWARE_CONTROL(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_EXT);
   GPIO_SET_OUTPUT(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_INT);
   GPIO_SET_OUTPUT(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_EXT);
 
-  /* Select external antenna by default. */
-  antenna_external();
+  /* Select CC2583 radio by default. */
+  antenna_select_ti();
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -71,6 +77,20 @@ antenna_internal(void)
 {
   GPIO_WRITE_PIN(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_EXT, 0);
   GPIO_WRITE_PIN(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_INT, 1);
+}
+/*---------------------------------------------------------------------------*/
+void
+antenna_select_atmel(void)
+{
+  GPIO_CLR_PIN(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_INT);
+  GPIO_SET_PIN(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_EXT);
+}
+/*---------------------------------------------------------------------------*/
+void
+antenna_select_ti(void)
+{
+  GPIO_SET_PIN(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_INT);
+  GPIO_CLR_PIN(ANTENNA_BSP_RADIO_BASE, ANTENNA_BSP_RADIO_EXT);
 }
 /*---------------------------------------------------------------------------*/
 /**

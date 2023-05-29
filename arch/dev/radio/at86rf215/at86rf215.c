@@ -74,12 +74,7 @@
 #include "at86rf215-conf.h"
 #include "at86rf215-registermap.h"
 #include "at86rf215-def.h"
-#include <stdio.h>
-#include "dev/spi-arch-legacy.h"
-#include "dev/spi-legacy.h"
-#include "dev/ioc.h"
-#include "dev/gpio.h"
-#include "dev/gpio-hal.h"
+#include "at86rf215-pmp.h"
 
 #include "sys/log.h"
 /*---------------------------------------------------------------------------*/
@@ -181,6 +176,7 @@ static uint8_t radio_mode_poll_mode = 0;
 
 /*---------------------------------------------------------------------------*/
 PROCESS(at86rf215_process, "AT86RF215 radio driver");
+extern struct process at86rf215_print_process;
 /*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
@@ -193,10 +189,15 @@ at86rf215_init(void)
 
     at86rf215_arch_init();
 
+    pmp_timer_init();
+
     /* Reset the radio (again) */
     at86rf215_arch_set_RSTN();
     clock_delay_usec(5);
     at86rf215_arch_clear_RSTN();
+
+    /* Select the default antenna on antenna array */
+    UCA_select_antenna_element(-1);
 
     do {
         LOG_DBG("Detecting radio ...\n");
@@ -262,6 +263,9 @@ at86rf215_init(void)
 
     /* Start Contiki process which will take care of received packets (for CSMA) */
 	process_start(&at86rf215_process, NULL);
+
+    /* Start the PMP process for logging the measured phases */
+    process_start(&at86rf215_print_process, NULL);
 
     /* Go to TXPREP state */
     regWrite(RG_RFn_CMD, RF_CMD_TXPREP);
@@ -790,6 +794,8 @@ const struct radio_driver at86rf215_driver = {
     .set_value         = at86rf215_set_value,
     .get_object        = at86rf215_get_object,
     .set_object        = at86rf215_set_object,
+
+    .measure_phase     = at86rf215_phase_measurement_process,
 };
 
 /*---------------------------------------------------------------------------*/

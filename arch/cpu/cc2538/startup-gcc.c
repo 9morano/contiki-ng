@@ -64,6 +64,7 @@ void udma_isr(void);
 void udma_err_isr(void);
 void crypto_isr(void);
 void pka_isr(void);
+void pmp_timer_isr(void);
 
 /* Link in the USB ISR only if USB is enabled */
 #if USB_SERIAL_CONF_ENABLE
@@ -159,7 +160,7 @@ void(*const vectors[])(void) =
   default_handler,            /* 48 SM Timer (Alternate) */
   default_handler,            /* 49 MacTimer (Alternate) */
   default_handler,            /* 50 SSI1 Rx and Tx */
-  default_handler,            /* 51 Timer 3 subtimer A */
+  pmp_timer_isr,            /* 51 Timer 3 subtimer A */
   default_handler,            /* 52 Timer 3 subtimer B */
   0,                          /* 53 Reserved */
   0,                          /* 54 Reserved */

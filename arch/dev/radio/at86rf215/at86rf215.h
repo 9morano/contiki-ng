@@ -106,15 +106,6 @@ typedef struct {
 } txFrame_t;
 */
 
-// Used for basic radio configuration
-typedef struct {
-    uint16_t address;
-    uint8_t value;
-} registerSetting_t;
-
-
-
-
 
 
 /*---------------------------------------------------------------------------*/

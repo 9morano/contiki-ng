@@ -241,6 +241,13 @@
     //#define AT86RF215_RXD24_PIN
     //#define AT86RF215_RXD09_PIN
 
+    /* Uniform circular antenna array */
+    #define UCA_CTRL_1_1_PIN                    0
+    #define UCA_CTRL_1_2_PIN                    1
+    #define UCA_CTRL_2_1_PIN                    2
+    #define UCA_CTRL_2_2_PIN                    3
+    #define UCA_CTR_PORT                        GPIO_B_NUM
+
     /* Use 32 MHz clock, so SPI can be at at least at 16MHz 
      * 16 MHz sys clock allows only 8 MHz SPI clock, which is to slow*/
     #define SYS_CTRL_CONF_SYS_DIV               SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ

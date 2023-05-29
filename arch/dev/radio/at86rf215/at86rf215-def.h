@@ -102,6 +102,14 @@
  * the original file, I just comment-out the values here.
  *---------------------------------------------------------------------------*/
 
+ #if TSCH_WITH_PMP
+extern const uint16_t tsch_timeslot_timing_at86rf215_12000us_250kbps_with_pmp[];
+#define AT86RF215_DEFAULT_TIMESLOT_TIMING   (tsch_timeslot_timing_at86rf215_12000us_250kbps_with_pmp)
+#else
+extern const uint16_t tsch_timeslot_timing_at86rf215_10000us_250kbps[];
+#define AT86RF215_DEFAULT_TIMESLOT_TIMING   (tsch_timeslot_timing_at86rf215_10000us_250kbps)
+#endif
+
 /* Drivers optimized so radio can be turned off within the timeslot */
 #define TSCH_CONF_RADIO_ON_DURING_TIMESLOT      (0)
 

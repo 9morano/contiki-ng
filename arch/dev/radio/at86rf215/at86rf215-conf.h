@@ -93,6 +93,11 @@ enum
 /* Radio configuration according to selected modulation and frequency        */
 /*---------------------------------------------------------------------------*/
 
+typedef struct {
+    uint16_t address;
+    uint8_t value;
+} registerSetting_t;
+
 /**
  * Current radio driver enables the selection of modulation and frequency band
  * only before compiling. In future we could reconfigure the drivers to support

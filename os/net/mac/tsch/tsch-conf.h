@@ -450,5 +450,12 @@ by default, useful in case of duplicate seqno */
 #define TSCH_CONF_RX_WAIT 2200
 #endif /* TSCH_CONF_RX_WAIT */
 
+/* Include phase measurement process in the TSCH */
+#ifdef TSCH_CONF_WITH_PMP
+#define TSCH_WITH_PMP TSCH_CONF_WITH_PMP
+#else
+#define TSCH_WITH_PMP 0
+#endif
+
 #endif /* __TSCH_CONF_H__ */
 /** @} */

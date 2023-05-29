@@ -634,6 +634,31 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
               uint8_t ack_hdrlen;
               frame802154_t frame;
 
+              static rtimer_clock_t  tsch_ts_tx_pmp_delay;
+              static rtimer_clock_t  tsch_ts_tx_pmp_duration = 0;
+              
+              /* If there is no PMP, use the defined ts_rx_ack_delay */
+              tsch_ts_tx_pmp_delay = tsch_timing[tsch_ts_rx_ack_delay]; 
+
+              /* Phase Measurement Process - Before ACK */
+#if TSCH_WITH_PMP
+              /* ts_tx_pmp_delay time should be the same as previous ts_tx_ack_delay or shorter 
+               but must be the same as ts_rx_pmp_delay !*/
+              /* TX routine*/ 
+              tsch_ts_tx_pmp_delay = US_TO_RTIMERTICKS(1000);
+              /* pmu_duration should be 2000 us, but we set 3000 while developing  */
+              tsch_ts_tx_pmp_duration = US_TO_RTIMERTICKS(3000);
+              static uint8_t *phase;
+
+              /* Synchronize with the reflector */
+              TSCH_SCHEDULE_AND_YIELD(pt, t, tx_start_time,
+                  tx_duration +  tsch_ts_tx_pmp_delay, "TxBeforePhase");
+              TSCH_DEBUG_TX_EVENT();
+
+              /* Measure the phase angle */
+              NETSTACK_RADIO.measure_phase(0, tsch_current_channel, phase);
+#endif /* TSCH_WITH_PMP */
+
 #if TSCH_HW_FRAME_FILTERING
               radio_value_t radio_rx_mode;
               /* Entering promiscuous mode so that the radio accepts the enhanced ACK */
@@ -642,12 +667,12 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
 #endif /* TSCH_HW_FRAME_FILTERING */
               /* Unicast: wait for ack after tx: sleep until ack time */
               TSCH_SCHEDULE_AND_YIELD(pt, t, current_slot_start,
-                  tsch_timing[tsch_ts_tx_offset] + tx_duration + tsch_timing[tsch_ts_rx_ack_delay] - RADIO_DELAY_BEFORE_RX, "TxBeforeAck");
+                  tsch_timing[tsch_ts_tx_offset] + tx_duration + tsch_ts_tx_pmp_delay + tsch_ts_tx_pmp_duration - RADIO_DELAY_BEFORE_RX, "TxBeforeAck");
               TSCH_DEBUG_TX_EVENT();
               tsch_radio_on(TSCH_RADIO_CMD_ON_WITHIN_TIMESLOT);
               /* Wait for ACK to come */
               RTIMER_BUSYWAIT_UNTIL_ABS(NETSTACK_RADIO.receiving_packet(),
-                  tx_start_time, tx_duration + tsch_timing[tsch_ts_rx_ack_delay] + tsch_timing[tsch_ts_ack_wait] + RADIO_DELAY_BEFORE_DETECT);
+                  tx_start_time, tx_duration + tsch_ts_tx_pmp_delay + tsch_ts_tx_pmp_duration + tsch_timing[tsch_ts_ack_wait] + RADIO_DELAY_BEFORE_DETECT);
               TSCH_DEBUG_TX_EVENT();
 
               ack_start_time = RTIMER_NOW() - RADIO_DELAY_BEFORE_DETECT;
@@ -691,6 +716,24 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
                       "!failed to parse ACK"));
                 }
 #endif /* LLSEC802154_ENABLED */
+
+                /* Phase Measurement Process - After ACK (no longer in sync .. TODO)*/
+#if 0
+                static rtimer_clock_t ack_duration;
+                ack_duration = TSCH_PACKET_DURATION(ack_len);
+                ack_duration = MIN(ack_duration, tsch_timing[tsch_ts_max_ack]);
+
+                //static rtimer_clock_t tsch_ts_pmp_duration = 2000;
+                static uint8_t *phase;  // Not used
+
+                /* Synchronize with the RX */
+                TSCH_SCHEDULE_AND_YIELD(pt, t, ack_start_time,
+                    ack_duration + 1000, "TxBeforePhase");
+                TSCH_DEBUG_TX_EVENT();
+
+                /* Measure the phase angle */
+                NETSTACK_RADIO.measure_phase(0, tsch_current_channel, phase);
+#endif /* TSCH_WITH_PMP */
               }
 
               if(ack_len != 0) {
@@ -945,6 +988,34 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
               static uint8_t ack_buf[TSCH_PACKET_MAX_LEN];
               static int ack_len;
 
+              static rtimer_clock_t tsch_ts_rx_pmp_delay;
+              static rtimer_clock_t tsch_ts_rx_pmp_duration = 0;
+
+              /* if there is no PMP, use the defined ts_tx_ack_delay */
+              tsch_ts_rx_pmp_delay = tsch_timing[tsch_ts_tx_ack_delay];
+
+              /* Phase Measurement Process - before ACK */
+#if TSCH_WITH_PMP
+              /* ts_rx_pmp_delay should be the same as previous ts_tx_ack_delay or shorter  
+               * to acomodate the radio buffer read and frame processing */
+              tsch_ts_rx_pmp_delay = US_TO_RTIMERTICKS(1000);
+              /* pmu_duration must be measured/calculated */
+              tsch_ts_rx_pmp_duration = US_TO_RTIMERTICKS(3000);
+              /* Allow the other to prepare for ACK reception 
+               * the value should be the same as the difference between previously defined
+               (tx_ack_delay - rx_ack_delay)*/
+              tsch_ts_rx_pmp_duration += US_TO_RTIMERTICKS(200);
+
+              static uint8_t *phase;
+
+              /* Synchronize with initiator*/
+              TSCH_SCHEDULE_AND_YIELD(pt, t, rx_start_time,
+                                      packet_duration + tsch_ts_rx_pmp_delay, "RxBeforePhase");
+              TSCH_DEBUG_RX_EVENT();
+              /* Measure the phase angle */
+              NETSTACK_RADIO.measure_phase(1, tsch_current_channel, phase);
+#endif /* TSCH_WITH_PMP */
+
               /* Build ACK frame */
               ack_len = tsch_packet_create_eack(ack_buf, sizeof(ack_buf),
                   &source_address, frame.seq, (int16_t)RTIMERTICKS_TO_US(estimated_drift), do_nack);
@@ -962,7 +1033,7 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
 
                 /* Wait for time to ACK and transmit ACK */
                 TSCH_SCHEDULE_AND_YIELD(pt, t, rx_start_time,
-                                        packet_duration + tsch_timing[tsch_ts_tx_ack_delay] - RADIO_DELAY_BEFORE_TX, "RxBeforeAck");
+                                        packet_duration + tsch_ts_rx_pmp_delay + tsch_ts_rx_pmp_duration - RADIO_DELAY_BEFORE_TX, "RxBeforeAck");
                 TSCH_DEBUG_RX_EVENT();
                 NETSTACK_RADIO.transmit(ack_len);
                 tsch_radio_off(TSCH_RADIO_CMD_OFF_WITHIN_TIMESLOT);
@@ -970,6 +1041,22 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
                 /* Schedule a burst link iff the frame pending bit was set */
                 burst_link_scheduled = tsch_packet_get_frame_pending(current_input->payload, current_input->len);
               }
+
+              /* Phase Measurement Process - After ACK (no longer in sync..TODO) */
+#if 0 /* TSCH_WITH_PMP */
+              static rtimer_clock_t ack_duration;
+              ack_duration = TSCH_PACKET_DURATION(ack_len);
+              ack_duration = MIN(ack_duration, tsch_timing[tsch_ts_max_ack]);
+              static uint8_t *phase;  // Not used
+
+              /* Synchronize with the TX */
+                TSCH_SCHEDULE_AND_YIELD(pt, t, rx_start_time,
+                    packet_duration + tsch_ts_rx_pmp_delay + tsch_ts_rx_pmp_duration - RADIO_DELAY_BEFORE_TX + ack_duration + 1000, "TxBeforePhase");
+                TSCH_DEBUG_TX_EVENT();
+
+              /* Measure the phase angle */
+              NETSTACK_RADIO.measure_phase(1, tsch_current_channel, phase);
+#endif /* TSCH_WITH_PMP */
             }
 
             /* If the sender is a time source, proceed to clock drift compensation */

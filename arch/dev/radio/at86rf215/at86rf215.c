@@ -882,7 +882,6 @@ PROCESS_THREAD(at86rf215_process, ev, data)
 
             packetbuf_clear();
             uint8_t len = at86rf215_read(packetbuf_dataptr(), PACKETBUF_SIZE);
-            packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, rxFrame.timestamp);
             packetbuf_set_attr(PACKETBUF_ATTR_RSSI, rxFrame.rssi);
             packetbuf_set_attr(PACKETBUF_ATTR_LINK_QUALITY, rxFrame.lqi);
 

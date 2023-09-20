@@ -130,8 +130,6 @@ rf2xx_init(void)
 int
 rf2xx_prepare(const void *payload, unsigned short payload_len)
 {
-    uint8_t trxState;
-
     RF2XX_STATS_ADD(txTry);
 
     if (payload_len > RF2XX_MAX_PAYLOAD_SIZE) {
@@ -165,8 +163,6 @@ rf2xx_transmit(unsigned short transmit_len)
     regWrite(RG_TRX_STATE, TRX_CMD_FORCE_PLL_ON);
     while(bitRead(SR_TRX_STATUS) == TRX_STATUS_STATE_TRANSITION){}
     flags.value = 0;
-
-    uint8_t trxState;
 
     setSLPTR();
     clearSLPTR();
@@ -582,7 +578,7 @@ PROCESS_THREAD(rf2xx_process, ev, data)
         RF2XX_STATS_ADD(rxToStack);
 
         packetbuf_clear();
-        packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, rxFrame.timestamp);
+        //packetbuf_set_attr(PACKETBUF_ATTR_TIMESTAMP, rxFrame.timestamp);
         len = rf2xx_read(packetbuf_dataptr(), PACKETBUF_SIZE);
 
         if(len) {

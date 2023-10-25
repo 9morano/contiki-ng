@@ -74,6 +74,10 @@ BUILD_DIR_TARGET = $(BUILD_DIR)/$(TARGET)
 BUILD_DIR_TARGET_BOARD = $(BUILD_DIR_TARGET)/$(BOARD)
 # If BOARD was empty, make sure we don't end up with a sequence of slashes
 BUILD_DIR_FULL = $(BUILD_DIR_TARGET_BOARD:/=)/$(BUILD_DIR_CONFIG)
+
+# This was added for VESNA
+CONTIKI_NG_TARGET_LIB = $(BUILD_DIR_BOARD)/contiki-ng-$(TARGET).a
+
 # Ditto if BUILD_DIR_CONFIG was empty
 BUILD_DIR_BOARD = $(BUILD_DIR_FULL:/=)
 GENDIR = $(BUILD_DIR_BOARD)/gen
@@ -558,6 +562,24 @@ $(OBJECTDIR)/%.e: %.cpp | $(OBJECTDIR)
 	$(Q)$(CCACHE) $(CXX) $(CXXFLAGS) -E $< -o $@
 endif
 
+
+# This was added for VESNA
+ifndef CUSTOM_RULE_C_TO_O
+%.o: %.c
+	$(TRACE_CC)
+	$(Q)$(CCACHE) $(CC) $(CFLAGS) -c $< -o $@
+endif
+ifndef AROPTS
+  AROPTS = rc
+endif
+ifndef CUSTOM_RULE_ALLOBJS_TO_TARGETLIB
+$(CONTIKI_NG_TARGET_LIB): $(CONTIKI_OBJECTFILES)
+	$(TRACE_AR)
+	$(Q)$(AR) $(AROPTS) $@ $^
+endif
+
+
+
 ifndef LD
   LD = $(CC)
 endif
@@ -577,7 +599,15 @@ TARGET_LIBEXTRAS = $(LD_START_GROUP) $(TARGET_LIBFILES) $(LD_END_GROUP)
 # a compatibility line for link rule so we can have a single rule that
 # outputs to LIBNAME on all platforms.
 $(BUILD_DIR_BOARD)/%.$(TARGET): LIBNAME ?= $@
-$(BUILD_DIR_BOARD)/%.$(TARGET): $(OBJECTDIR)/%.o $(LDSCRIPT) $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) $(CONTIKI_OBJECTFILES)
+
+
+
+# This was replaced for VESNA
+#$(BUILD_DIR_BOARD)/%.$(TARGET): $(OBJECTDIR)/%.o $(LDSCRIPT) $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) $(CONTIKI_OBJECTFILES)
+$(BUILD_DIR_BOARD)/%.$(TARGET): %.o $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) $(CONTIKI_NG_TARGET_LIB)
+
+
+
 	$(TRACE_LD)
 	$(Q)$(LD) $(LDFLAGS) $(TARGET_STARTFILES) $(sort ${filter-out $(LDSCRIPT) %.a,$^}) ${filter %.a,$^} $(TARGET_LIBEXTRAS) -o $(LIBNAME)
 ifdef BINARY_SIZE_LOGFILE

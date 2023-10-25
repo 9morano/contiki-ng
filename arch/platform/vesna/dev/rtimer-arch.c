@@ -29,8 +29,8 @@
 #define RTIMER_APB1 RCC_APB1Periph_TIM5
 
 /*
-    Contiki(-ng) uses several timers. We implemented rtimer (r is for real-time)
-    using TIM5 general purpose timer.
+    Contiki(-ng) uses several timers. We implemented rtimer (r is for real-time) using TIM5 general purpose 
+    timer. Rtimer is typically used for TSCH operations, thus it should be precise.
 
     TIM5 properties:
         - 16-bit up/down counter,
@@ -39,14 +39,16 @@
     Our goal is to get >= 32kHz triggers (see tsch-slot-operation.c). We set goal to have 64kHz triggers.
 
     Internal clock of STM32 is drifting a lot - too much for precise TSCH operations. This presents a 
-    problem, because our devices are mising the slots. So we have 2 options:
+    problem, because our devices are missing the slots. So we have 2 options:
 
-    1) When we are using SNR board, we can use AT86RF2xx oscilator clock as main clock for STM32, which has
+    1) When we are using SNR board, we can use AT86RF2xx oscillator clock as main clock for STM32, which has
        very low drift (configured in platform.c).
+       Usage: VESNA_CONF_USE_EXTERNAL_CLOCK  (1)
 
-    2) When we are using ISMTV board, AT86RF2xx CLK pin is not connected anywhere. But we can use oscilator
-       of CC1101 chip, which is connected to TIM5 Channel 3 (PA2 on STM32). So only TIM5 will have external 
+    2) When we are using ISMTV board, AT86RF2xx CLK pin is not connected anywhere. But we can use oscillator
+       of CC1101 radio, which is connected to TIM5 Channel 3 (PA2 on STM32). So only TIM5 will have external 
        clock source, which is not drifting.
+       Usage: VESNA_CONF_RTIMER_USE_EXTERNAL_SOURCE   (1)
 */
 
 void rtimer_arch_init(void) {
@@ -54,7 +56,7 @@ void rtimer_arch_init(void) {
     // TIM5 clock enable
     RCC_APB1PeriphClockCmd(RTIMER_APB1, ENABLE);
 
-#if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
+#if (VESNA_RTIMER_USE_EXTERNAL_SOURCE)
     TIM_TimeBaseInitTypeDef externalTimerInitStructure = {
         .TIM_Prescaler = 206 - 1,       // 0 = run @ 13.5MHz, 206 = run @ 65533.98 Hz
         .TIM_CounterMode = TIM_CounterMode_Up,
@@ -72,7 +74,7 @@ void rtimer_arch_init(void) {
     TIM_TimeBaseInit(RTIMER_TIMx, &externalTimerInitStructure);
 
         // GPIO clock enable
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // Do we need this?
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE); // Do we need this? YES
 
     // Initialize GPIO
     GPIO_Init(GPIOA, &gpioInitStructure);

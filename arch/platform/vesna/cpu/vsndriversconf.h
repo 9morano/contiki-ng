@@ -1,9 +1,23 @@
+/**
+ * @file
+ *
+ * @author 	Gregor Cerar, Grega Morano
+ * @date 	10.10.2021
+ *
+ * This is a user library for configuring the VSNLib. The functions are
+ * updated to be used with Contiki-NG OS.
+ *
+ * copyright (c) SensorLab, Jozef Stefan Institute
+ */
+
 #ifndef VSNDRIVERS_CONF_H_
 #define VSNDRIVERS_CONF_H_
 
 
 #include <stdint.h>
 
+/* Function prototypes */
+void vsnDriversConf_nvic(void);
 
 /* The USART to which the standard C printf(), putchar(), ... will print to.
  * Note that defined USART needs to be configured by the user for this to work.
@@ -69,27 +83,28 @@
 #define USART1_DMA_MODE
 //#define USART1_INTERRUPT_MODE
 //#define USART2_DMA_MODE
-#define USART2_INTERRUPT_MODE
+//#define USART2_INTERRUPT_MODE
 //#define USART3_DMA_MODE
-#define USART3_INTERRUPT_MODE
+//#define USART3_INTERRUPT_MODE
 //#define UART4_DMA_MODE
-#define UART4_INTERRUPT_MODE
+//#define UART4_INTERRUPT_MODE
 
 /* Set the desired USART buffer sizes, if nothing is defined here
  * buffer size defaults to 128 bytes */
 /* RX buffer size for USARTs, USARTx_RX_BUFFER_LEN - 1 chars can be stored */
 #define USART1_RX_BUFFER_LEN  (1280 * 2)
-#define USART2_RX_BUFFER_LEN  128
-#define USART3_RX_BUFFER_LEN  128
-#define UART4_RX_BUFFER_LEN   128
+//#define USART2_RX_BUFFER_LEN  128
+//#define USART3_RX_BUFFER_LEN  128
+//#define UART4_RX_BUFFER_LEN   128
 
 /* TX buffer size for USARTs, USARTx_TX_BUFFER_LEN - 1 chars can be stored */
 #define USART1_TX_BUFFER_LEN  (1280 * 2)
-#define USART2_TX_BUFFER_LEN  128
-#define USART3_TX_BUFFER_LEN  128
-#define UART4_TX_BUFFER_LEN   128
+//#define USART2_TX_BUFFER_LEN  128
+//#define USART3_TX_BUFFER_LEN  128
+//#define UART4_TX_BUFFER_LEN   128
 
-//#define I2C1_DMA_MODE
+
+
 /* ------------------------------ ZigBit driver configuration ----------------------- */
 /* Set the desired message buffer size, min size is 2,
  * the buffer has to be declared by the user application check vsnZigbit_init()
@@ -97,24 +112,16 @@
  */
 //#define ZIGBIT_MSG_BUFFER_SIZE  5
 
-/* Function prototypes */
-void vsnDriversConf_nvic(void);
-//uint16_t prescaler_calc(uint32_t spiSpeed);
-
-
-
 
 /* ------------------- CC 1101 / 2500 driver configuration ----------------- */
-
 /**
  * Physical location where the radio chip is connected.
  * Only 1 value has to be set to 1 from these:
  */
 
 //#define VSNCCRADIO_868 0
-
-
-
+//#define CC_RADIO_ON_RADIO_CONNECTOR 1
+//#define CC_RADIO_ON_EXPANSION_CONNECTOR	0
 
 
 #endif //VSNDRIVERS_CONF_H_

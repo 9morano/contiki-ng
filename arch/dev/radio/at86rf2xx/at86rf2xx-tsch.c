@@ -52,7 +52,7 @@ const tsch_timeslot_timing_usec tsch_timeslot_timing_us_10000 = {
 #include "net/mac/tsch/tsch.h"
 
 
-const tsch_timeslot_timing_usec tsch_timeslot_timing_rf2xx_10000us_250kbps = {
+const tsch_timeslot_timing_usec tsch_timeslot_timing_at86rf2xx_10000us_250kbps = {
    1000, // CCAOffset 
     128, // CCA 
    1620, // TxOffset 

@@ -87,7 +87,7 @@ PROCESS_THREAD(udp_server_process, ev, data)
 
 
   // Init driver statistics 
-  RF2XX_STATS_RESET();
+  AT86RF2XX_STATS_RESET();
 	STATS_clear_packet_stats();
   printf("Tx [time-stamp] packet-type  dest-addr (chn len sqn | pow) BC or UC \n");
 	printf("Rx [time-stamp] packet-type  sour-addr (chn len sqn | rssi lqi) \n");

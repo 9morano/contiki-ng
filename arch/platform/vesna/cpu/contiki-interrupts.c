@@ -20,7 +20,7 @@
  * <h2><center>&copy; COPYRIGHT 2009 STMicroelectronics</center></h2>
  */
 
-/* Includes ------------------------------------------------------------------*/
+/******************************************************************************/
 #include "newlib.h"
 #include "vsn.h"
 #include "stm32f10x_it.h"
@@ -30,24 +30,19 @@
 #include "vsnsd.h"
 #include "vsnsetup.h"
 #include "vsnledind.h"
-
 #include "vsnresetbutton.h"
 
-#include "rtimer-arch.h"
 #include "sys/clock.h"
 
-#include "dev/uart1.h"
-#include "radio/at86rf2xx/rf2xx.h"
-
+#include "uart1.h"
+#include "rtimer-arch.h"
+#include "at86rf2xx-arch.h"
 
 extern void clock_interrupt_handler(void);
-
-
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Exceptions Handlers                         */
 /******************************************************************************/
-
 /**
  * This function handles NMI exception.
  * @param  None
@@ -74,8 +69,7 @@ void NMI_Handler(void)
 		/* TODO if HSE fails completely we have to reinitialize clock dependent drivers or restart the system */
 	}
 }
-
-
+/******************************************************************************/
 unsigned int faultStack[51];
 unsigned int *stackPointer;
 /**
@@ -142,7 +136,7 @@ void HardFault_Handler(void)
 		NVIC_SystemReset();
 	}
 }
-
+/******************************************************************************/
 /**
  * This function handles Memory Manage exception.
  * @param  None
@@ -162,7 +156,7 @@ void MemManage_Handler(void)
 	{
 	}
 }
-
+/******************************************************************************/
 /**
  * This function handles Bus Fault exception.
  * @param  None
@@ -181,7 +175,7 @@ void BusFault_Handler(void)
 	{
 	}
 }
-
+/******************************************************************************/
 /**
  * This function handles Usage Fault exception.
  * @param  None
@@ -200,7 +194,7 @@ void UsageFault_Handler(void)
 	{
 	}
 }
-
+/******************************************************************************/
 /**
  * This function handles SVCall exception.
  * @param  None
@@ -209,7 +203,7 @@ void UsageFault_Handler(void)
 void SVC_Handler(void)
 {
 }
-
+/******************************************************************************/
 /**
  * This function handles Debug Monitor exception.
  * @param  None
@@ -218,7 +212,7 @@ void SVC_Handler(void)
 void DebugMon_Handler(void)
 {
 }
-
+/******************************************************************************/
 /**
  * This function handles PendSV_Handler exception.
  * @param  None
@@ -227,9 +221,7 @@ void DebugMon_Handler(void)
 void PendSV_Handler(void)
 {
 }
-
-
-
+/******************************************************************************/
 /**
  * This function handles SysTick interrupt.
  * @param  None
@@ -249,32 +241,7 @@ void SysTick_Handler(void)
 /*  file (startup_stm32f10x_xx.s).                                            */
 /******************************************************************************/
 
-/*
- * .word  WWDG_IRQHandler
- * .word  PVD_IRQHandler
- * .word  TAMPER_IRQHandler
- * .word  RTC_IRQHandler
- * .word  FLASH_IRQHandler
- * .word  RCC_IRQHandler
- * .word  EXTI0_IRQHandler
- * .word  EXTI1_IRQHandler
- * .word  EXTI2_IRQHandler
- * .word  EXTI3_IRQHandler
- * .word  EXTI4_IRQHandler
- * .word  DMA1_Channel1_IRQHandler
- * .word  DMA1_Channel2_IRQHandler
- * .word  DMA1_Channel3_IRQHandler
- * .word  DMA1_Channel4_IRQHandler
- * .word  DMA1_Channel5_IRQHandler
- * .word  DMA1_Channel6_IRQHandler
- * .word  DMA1_Channel7_IRQHandler
- * .word  ADC1_2_IRQHandler
- * .word  USB_HP_CAN1_TX_IRQHandler
- * .word  USB_LP_CAN1_RX0_IRQHandler
- * .word  CAN1_RX1_IRQHandler
- * .word  CAN1_SCE_IRQHandler
- */
-
+/******************************************************************************/
 /**
  * This function handles RTC Second interrupt.
  * @param  None
@@ -291,7 +258,7 @@ void RTC_IRQHandler(void)
 		RTC_ClearITPendingBit(RTC_IT_SEC);
 	}
 }
-
+/******************************************************************************/
 /**
  * This function handles USART1 interrupt.
  * @param  None
@@ -303,51 +270,7 @@ void USART1_IRQHandler(void)
 
 	//contiki_uart1_isr(); // it just informs process
 }
-
-/**
- * This function handles USART2 interrupt.
- * @param  None
- * @return None
- */
-void USART2_IRQHandler(void)
-{
-	vsnUSART_usart2Isr();
-}
-
-/**
- * This function handles USART3 interrupt.
- * @param  None
- * @return None
- */
-void USART3_IRQHandler(void)
-{
-	vsnUSART_usart3Isr();
-}
-
-/**
- * This function handles UART4 interrupt.
- * @param  None
- * @return None
- */
-void UART4_IRQHandler(void)
-{
-	vsnUSART_uart4Isr();
-}
-
-/*
- .word  TIM1_BRK_IRQHandler
- .word  TIM1_UP_IRQHandler
- .word  TIM1_TRG_COM_IRQHandler
- .word  TIM1_CC_IRQHandler
- .word  TIM2_IRQHandler
- .word  TIM3_IRQHandler
- */
-
-void TIM2_IRQHandler(void)
-{
-	//contiki_rtimer_isr();
-}
-
+/******************************************************************************/
 /**
  * This function handles SPI1 interrupt Handler.
  * @param  None
@@ -362,17 +285,7 @@ void SPI1_IRQHandler(void)
 	vsnSPILowx_processIrq(SPI1);
 #endif
 }
-
-void SPI2_IRQHandler(void)
-{
-#ifdef SPI2_NEW_DRIVER_MODE_INTERRUPT
-	vsnSPILowx_processIrq(SPI2);
-#endif
-}
-
-
-
-
+/******************************************************************************/
 /**
  * This function handles DMA1 Channel2 Handler.
  * @param  None	DMA1_Channel2
@@ -380,13 +293,6 @@ void SPI2_IRQHandler(void)
  */
 void DMA1_Channel2_IRQHandler(void)
 {
-	//vsnFram_processDmaRxIrq();
-	//vsnUSART_dmaTxUsart3Isr();
-
-#ifdef USART3_DMA_MODE
-	vsnUSART_dmaTxUsart3Isr();
-#endif
-
 #ifdef SPI1_DRIVER_MODE_DMA
 	vsnSPI1_processDmaRxIrq();
 #endif
@@ -394,12 +300,8 @@ void DMA1_Channel2_IRQHandler(void)
 #ifdef SPI1_NEW_DRIVER_MODE_DMA
 	vsnSPILowx_dmaRxIrq(SPI1);
 #endif
-
-#if (defined(USART3_DMA_MODE) + defined(SPI1_DRIVER_MODE_DMA)+defined(SPI1_NEW_DRIVER_MODE_DMA)) > 1
-#error "DMA1 channel 2: should be used by USART3 DMA or SPI1 DMA, bot not both!"
-#endif
 }
-
+/******************************************************************************/
 /**
  * This function handles DMA1 Channel3 Handler.
  * @param  None	DMA1_Channel3
@@ -407,8 +309,6 @@ void DMA1_Channel2_IRQHandler(void)
  */
 void DMA1_Channel3_IRQHandler(void)
 {
-	//vsnFram_processDmaTxIrq();
-	//vsnUSART_dmaRxUsart3Isr();
 #ifdef SPI1_DRIVER_MODE_DMA
 	vsnSPI1_processDmaTxIrq();
 #endif
@@ -416,17 +316,8 @@ void DMA1_Channel3_IRQHandler(void)
 #ifdef SPI1_NEW_DRIVER_MODE_DMA
 	vsnSPILowx_dmaTxIrq(SPI1);
 #endif
-
-#ifdef USART3_DMA_MODE
-	vsnUSART_dmaRxUsart3Isr();
-#endif
-
-#if (defined(USART3_DMA_MODE) + defined(SPI1_DRIVER_MODE_DMA) + defined(SPI1_NEW_DRIVER_MODE_DMA)) > 1
-#error "DMA1 channel 3: should be used by USART3 DMA or SPI1 DMA, bot not both!"
-#endif
 }
-
-
+/******************************************************************************/
 /**
  * This function handles DMA1 Channel4 Handler.
  * @param  None	DMA1_Channel4
@@ -434,23 +325,11 @@ void DMA1_Channel3_IRQHandler(void)
  */
 void DMA1_Channel4_IRQHandler(void)
 {
-	//vsnUSART_dmaTxUsart1Isr();
-
 #ifdef USART1_DMA_MODE
 	vsnUSART_dmaTxUsart1Isr();
 #endif
-#ifdef I2C2_DMA_MODE
-	vsnI2C_dmaTcIsr(I2C_2_DMA_TX);
-#endif
-#ifdef SPI2_NEW_DRIVER_MODE_DMA
-	vsnSPILowx_dmaRxIrq(SPI2);
-#endif
-
-#if (defined(USART1_DMA_MODE) + defined(I2C2_DMA_MODE)+ defined(SPI2_NEW_DRIVER_MODE_DMA)) > 1
-#error "DMA1 channel 4: should be used just by one periphery: USART1 DMA, SPI2 DMA or I2C2!"
-#endif
 }
-
+/******************************************************************************/
 /**
  * This function handles DMA1 Channel5 Handler.
  * @param  None	DMA1_Channel5
@@ -458,130 +337,47 @@ void DMA1_Channel4_IRQHandler(void)
  */
 void DMA1_Channel5_IRQHandler(void)
 {
-	//vsnUSART_dmaRxUsart1Isr();
 #ifdef USART1_DMA_MODE
 	vsnUSART_dmaRxUsart1Isr();
 #endif
-#ifdef I2C2_DMA_MODE
-	vsnI2C_dmaTcIsr(I2C_2_DMA_RX);
-#endif
-#ifdef SPI2_NEW_DRIVER_MODE_DMA
-	vsnSPILowx_dmaTxIrq(SPI2);
-#endif
-
-#if (defined(USART3_DMA_MODE) + defined(I2C2_DMA_MODE)+ defined(SPI2_NEW_DRIVER_MODE_DMA)) > 1
-#error "DMA1 channel 5: should be used just by one periphery: USART3 DMA, SPI2 DMA or I2C2!"
-#endif
 }
-
-
-/**
- * This function handles DMA1 Channel6 Handler.
- * @param  None	DMA1_Channel6
- * @return None
- */
-void DMA1_Channel6_IRQHandler(void)
-{
-	//vsnUSART_dmaRxUsart2Isr();
-#ifdef USART2_DMA_MODE
-	vsnUSART_dmaRxUsart2Isr();
-#elif defined (I2C1_DMA_MODE)
-	vsnI2C_dmaTcIsr(I2C_1_DMA_TX);
-#endif
-}
-
-/**
- * This function handles DMA1 Channel7 Handler.
- * @param  None	DMA1_Channel7
- * @return None
- */
-void DMA1_Channel7_IRQHandler(void)
-{
-	vsnUSART_dmaTxUsart2Isr();
-}
-
-/**
- * This function handles DMA2 Channel3 Handler.
- * @param  None	DMA2_Channel3
- * @return None
- */
-void DMA2_Channel3_IRQHandler(void)
-{
-	vsnUSART_dmaRxUart4Isr();
-}
-
-/**
- * This function handles DMA2 Channel5 Handler.
- * @param  None	DMA2_Channel4_5
- * @return None
- */
-void DMA2_Channel4_5_IRQHandler(void)
-{
-	vsnUSART_dmaTxUart4Isr();
-}
-
-#ifdef WITH_SDIO
-/**
-  * This function handles SDIO global interrupt request.
-  * @param  None
-  * @return None
-  */
-void SDIO_IRQHandler(void)
-{
-  /* Process All SDIO Interrupt Sources */
-	//vsnSD_processIrqSrc();
-}
-#endif /* WITH_SDIO */
-
-/*
- .word  I2C1_EV_IRQHandler
- .word  I2C1_ER_IRQHandler
- .word  I2C2_EV_IRQHandler
- .word  I2C2_ER_IRQHandler
- .word  SPI1_IRQHandler
- .word  SPI2_IRQHandler
- */
-
-//#if defined(CORE) || defined(ELF_APP)
-/**
- * Function pointer proxy_vsnCC1101_handleRadioInterrupt has to be defined in
- * core application, and must not be defined in elf application.
- */
-//void (*proxy_vsnCC1101_handleRadioInterrupt)(void) = 0;
-//#endif
-
+/******************************************************************************/
 /**
  * This function handles External interrupt line 2.
  * @param  None
  * @return None
  */
-void EXTI2_IRQHandler(void) {}
-
-
-
+// void EXTI2_IRQHandler(void) 
+// {
+// }
+/******************************************************************************/
+/** TODO:
+ * Interrupt handler sources are board specific - we could move 
+ * this file to boards supported by VESNA, each board
+ * containing its file with EXTI IRQ Handler configuration
+ */
 void EXTI3_IRQHandler(void) {
-	#if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
+	#if (BOARD_SNE_ISMTV_V1_0 || BOARD_SNE_ISMTV_V1_1)
 		if (EXTI_GetITStatus(EXTI_Line3) != RESET) {
 			EXTI_ClearITPendingBit(EXTI_Line3);
-			rf2xx_isr();
+			
+			at86rf2xx_isr();
 		}
 	#endif
 }
-
-
+/******************************************************************************/
 /**
  * This function handles External interrupt lines 5 thru 9.
  * @param  None
  * @return None
  */
 void EXTI9_5_IRQHandler(void) {
-	#if VESNA_BOARD_SNR
+	#if BOARD_SNR
 		if (EXTI_GetITStatus(EXTI_Line9) != RESET) {
 			EXTI_ClearITPendingBit(EXTI_Line9);
-			rf2xx_isr();
+			at86rf2xx_isr();
 		}
 	#endif
-
 	/* Interrupt routine for cc1101 */
 	/* Is GDO0 line activated? */
 	/* line 9, for reset button */
@@ -591,56 +387,38 @@ void EXTI9_5_IRQHandler(void) {
 		//resetbutton_sensor_handleInterrupt();
 		/* clear interrupt */
 		EXTI_ClearITPendingBit(EXTI_RESETBUTTON);
-
 	}
-
 }
-
-
-/*
- .word  USART2_IRQHandler
- .word  USART3_IRQHandler
- .word  EXTI15_10_IRQHandler
- .word  RTCAlarm_IRQHandler
- .word  USBWakeUp_IRQHandler
- .word  TIM8_BRK_IRQHandler
- .word  TIM8_UP_IRQHandler
- .word  TIM8_TRG_COM_IRQHandler
- .word  TIM8_CC_IRQHandler
- .word  ADC3_IRQHandler
- .word  FSMC_IRQHandler
- .word  SDIO_IRQHandler
- */
-
+/******************************************************************************/
 /**
  * This function handles TIM4 interrupts.
  * @param  None
  * @return None
  */
-/* void TIM4_IRQHandler(void)
-{
-
-}*/
-
-
-
+//void TIM4_IRQHandler(void) 
+// {	
+// }
+/******************************************************************************/
+/**
+ * This function handles TIM4 interrupts.
+ * @param  None
+ * @return None
+ */
+// void TIM2_IRQHandler(void)
+// {
+// 	   contiki_rtimer_isr();
+// }
+/******************************************************************************/
+/**
+ * This function handles TIM5 interrupts.
+ * @param  None
+ * @return None
+ */
 void TIM5_IRQHandler(void)
 {
     contiki_rtimer_isr();
 }
-
-/*
- * .word  SPI3_IRQHandler
- * .word  UART4_IRQHandler
- * .word  UART5_IRQHandler
- * .word  TIM6_IRQHandler
- * .word  TIM7_IRQHandler
- * .word  DMA2_Channel1_IRQHandler
- * .word  DMA2_Channel2_IRQHandler
- * .word  DMA2_Channel3_IRQHandler
- * .word  DMA2_Channel4_5_IRQHandler
- */
-
+/******************************************************************************/
 /**
  * This function handles RCC interrupt request.
  * @param  None
@@ -672,3 +450,4 @@ void RCC_IRQHandler(void) {
 		}
 	}
 }
+/******************************************************************************/

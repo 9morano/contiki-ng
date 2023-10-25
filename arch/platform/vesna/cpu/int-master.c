@@ -12,7 +12,6 @@ int_master_enable(void)
   __enable_irq();
 }
 
-
 int_master_status_t
 int_master_read_and_disable(void)
 {
@@ -23,13 +22,11 @@ int_master_read_and_disable(void)
   return primask;
 }
 
-
 void
 int_master_status_set(int_master_status_t status)
 {
   __set_PRIMASK(status);
 }
-
 
 bool
 int_master_is_enabled(void)

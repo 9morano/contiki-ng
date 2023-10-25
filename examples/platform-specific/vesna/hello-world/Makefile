@@ -9,15 +9,14 @@ VSNDRIVERS := ../../../../arch/platform/vesna/vesna-drivers
 # Select the VESNA node
 TARGET=vesna
 
-# Select the extension/radio board (SNR/ISMTV_v1.1)
-VESNA_BOARD = ISMTV_v1.1
-
+# Select the extension/radio board (snr/sne-ismtv-v1-1)
+BOARD = sne-ismtv-v1-1
 # Select the onboard radio
-VESNA_RADIO = AT86RF231
+RADIO = AT86RF231
 
 
 
-#MAKE_MAC = MAKE_MAC_TSCH
+MAKE_MAC = MAKE_MAC_TSCH
 MODULES += os/services/shell
 
 CONTIKI := ../../../..

@@ -21,9 +21,13 @@ Drift calculation:
     RTIMER_ARCH_DRIFT_PPM = 46
  */
 
-#if (VESNA_BOARD_ISMTV_V1_0 || VESNA_BOARD_ISMTV_V1_1)
+#if (VESNA_RTIMER_USE_EXTERNAL_SOURCE)
+    #if(VESNA_CONF_USE_EXTERNAL_CLOCK)
+    #error "Are you sure that is what you want?"
+    #else
     #define RTIMER_ARCH_SECOND      (65533)
-    #define RTIMER_ARCH_DRIFT_PPM   (503) 
+    #define RTIMER_ARCH_DRIFT_PPM   (503)
+    #endif
 #else
     #define RTIMER_ARCH_SECOND		(65503)
     #define RTIMER_ARCH_DRIFT_PPM   (46) 

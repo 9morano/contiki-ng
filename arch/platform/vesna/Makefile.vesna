@@ -1,13 +1,35 @@
 ifndef CONTIKI
-  $(error CONTIKI not defined! You must specify where CONTIKI resides!)
+  $(error CONTIKI not defined! Please specify where CONTIKI resides!)
 endif
 
-ifndef VESNA_BOARD
-  $(error VESNA_BOARD not defined! You must specify which VESNA_BOARD you are using!)
+ifndef TARGET
+  $(error Hello there! Please define TARGET=vesna )
 endif
 
-ifndef VESNA_RADIO
-  $(error VESNA_RADIO not defined! You must specify which VESNA_RADIO you are using!)
+ifndef BOARD
+  $(error BOARD not defined! Please specify which BOARD on VESNA you are using!)
+endif
+
+ifneq ($(BOARD),$(filter $(BOARD),snc snr sne-ismtv-v1-0 sne-ismtv-v1-1 sne-atasw))
+  $(error Incorect BOARD name! Available --> snc snr sne-ismtv-v1-0 sne-ismtv-v1-1 sne-atasw)
+endif
+
+# Add defines of board type
+BOARD_UPPER = $(shell echo "$(BOARD)" | tr [a-z] [A-Z] | tr [.\ ] _ | tr "-" _)
+CFLAGS += -DBOARD_$(BOARD_UPPER)
+CFLAGS += -DBOARD_STRING=\"$(BOARD_UPPER)\"
+
+
+# If the selected platform supports radio, it must be defined 
+ifeq ($(BOARD),$(filter $(BOARD),snr sne-ismtv-v1-0 sne-ismtv-v1-1 sne-atasw))
+  ifndef RADIO
+    $(error RADIO not defined! You must specify which RADIO you are using!)
+  endif
+
+  # Add defines of radio type
+  RADIO_UPPER = $(shell echo "$(RADIO)" | tr [a-z] [A-Z])
+  CFLAGS += -D$(RADIO_UPPER)
+  CFLAGS += -DRADIO_STRING=\"$(RADIO_UPPER)\"
 endif
 
 
@@ -69,9 +91,14 @@ TARGET_START_SOURCEFILES = contiki-interrupts.c startup_stm32f10x_hd.s syscalls.
 TARGET_STARTFILES = ${addprefix $(OBJECTDIR)/,${call oname, $(TARGET_START_SOURCEFILES)}}
 #TARGET_STARTFILES := ${addprefix $(OBJECTDIR)/, contiki-interrupts.o startup.o syscalls.o}
 
-CONTIKI_TARGET_DIRS += . cpu dev
+# Include board dir if one exists
+PLATFORM_ROOT_DIR = $(CONTIKI_NG_RELOC_PLATFORM_DIR)/$(TARGET)
 
-CONTIKI_TARGET_SOURCEFILES += platform.c vsndriversconf.c int-master.c
+CONTIKI_TARGET_DIRS += . cpu dev $(BOARD)
+
+-include $(PLATFORM_ROOT_DIR)/$(BOARD)/Makefile.$(BOARD)
+ 
+CONTIKI_TARGET_SOURCEFILES += board.c platform.c vsndriversconf.c int-master.c
 CONTIKI_TARGET_SOURCEFILES += clock.c rtimer-arch.c uart1.c watchdog.c slip-arch.c
 
 CONTIKI_SOURCEFILES += $(TARGET_START_SOURCEFILES) $(VSNDRIVERS_SOURCEFILES) $(CONTIKI_TARGET_SOURCEFILES)
@@ -97,24 +124,11 @@ else
   CFLAGS += -ggdb3
 endif
 
-# Compile with correct radio support/drivers
-VESNA_RADIO_UPPER = $(shell echo "$(VESNA_RADIO)" | tr [a-z] [A-Z] | tr [.\ ] _)
-VESNA_BOARD_UPPER = $(shell echo "$(VESNA_BOARD)" | tr [a-z] [A-Z] | tr [.\ ] _)
-
-CONTIKI_TARGET_DIRS += dev/radio/at86rf2xx 
-CONTIKI_TARGET_DIRS += dev/radio/cc1101
-CONTIKI_TARGET_SOURCEFILES += rf2xx.c rf2xx_hal.c rf2xx_tsch.c rf2xx_stats.c
-CONTIKI_TARGET_SOURCEFILES += cc1101_hal.c
-
-CFLAGS += -D$(VESNA_RADIO_UPPER)
-CFLAGS += -DVESNA_RADIO_STRING=\"$(VESNA_RADIO_UPPER)\"
-CFLAGS += -DVESNA_BOARD_$(VESNA_BOARD_UPPER)
-CFLAGS += -DVESNA_BOARD_STRING=\"$(VESNA_BOARD_UPPER)\"
-
-# (Workaround) Avoid compile warnings from vesna-drivers
-#CFLAGS += -DVSNCCRADIO_868=1
-#CFLAGS += -DCC_RADIO_ON_RADIO_CONNECTOR=0
-#CFLAGS += -DCC_RADIO_ON_EXPANSION_CONNECTOR=0
+# (Workaround) Avoid compile warnings from vesna-drivers 
+# does not work with current drivers unless you delete 2 files 
+# CFLAGS += -DVSNCCRADIO_868=1
+# CFLAGS += -DCC_RADIO_ON_RADIO_CONNECTOR=0
+# CFLAGS += -DCC_RADIO_ON_EXPANSION_CONNECTOR=0
 
 
 # Not really sure why is this for and if it is usefull for vesna-drivers.

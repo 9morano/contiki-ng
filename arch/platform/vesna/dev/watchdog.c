@@ -12,7 +12,7 @@
 #define LOG_MODULE "Watchdog"
 #define LOG_LEVEL LOG_CONF_LEVEL_WATCHDOG
 
-#if WATCHDOG_ENABLED
+#if VESNA_WATCHDOG_ENABLED
 
 void watchdog_init(void) {
     IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
@@ -52,7 +52,7 @@ void watchdog_reboot(void) {
     while (1);
 }
 
-#else // !WATCHDOG_CONF_ENABLED
+#else // !VESNA_WATCHDOG_ENABLED
 
 void watchdog_init(void) {}
 void watchdog_start(void) {}
@@ -60,4 +60,4 @@ void watchdog_periodic(void) {}
 void watchdog_stop(void) {}
 void watchdog_reboot(void) {}
 
-#endif // WATCHDOG_CONF_ENABLED
+#endif // VESNA_WATCHDOG_ENABLED

@@ -1,56 +1,61 @@
 /*
-    Real-time middleware for this architecture/platform
-    Contiki requires to define functions:
-      - rtimer_arch_now()
-      - void rtimer_arch_init(void)
-      - void rtimer_arch_schedule(rtimer_clock_t t);
-      - RTIMER_ARCH_SECOND
-
-    TODO: Timers & RTimers are usualy CPU specific.
-        At some point move this to cpu/.
-*/
-#include <stdio.h>
-#include <stdlib.h>
-#include "contiki.h"
-#include "sys/energest.h"
-#include "sys/rtimer.h"
-
+ * Copyright (c) 2023, ComLab, Jozef Stefan Institute - https://e6.ijs.si/
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+/*---------------------------------------------------------------------------*/
+/**
+ * \file
+ *     Real-time timer for VESNA platform.
+ *
+ *     Contiki requires the following functions:
+ *         - rtimer_arch_now(void)
+ *         - rtimer_arch_init(void)
+ *         - rtimer_arch_schedule(rtimer_clock_t t),
+ *     and the following defines:
+ *         - RTIMER_ARCH_SECOND
+ *         - RTIMER_ARCH_DRIFT_PPM
+ *
+ * \author
+ *      Grega Morano <grega.morano@ijs.si>
+ *
+ * \todo
+ *      Timers & RTimers are usually CPU specific.. At some point, move this.
+ */
+/*---------------------------------------------------------------------------*/
 #include "rtimer-arch.h"
-
-// STM libraries
-#include "misc.h"
 #include "stm32f10x_rcc.h"
 #include "stm32f10x_tim.h"
-
 #include "sys/critical.h"
-
+/*---------------------------------------------------------------------------*/
 #define RTIMER_TIMx TIM5
 #define RTIMER_IRQn TIM5_IRQn
 #define RTIMER_APB1 RCC_APB1Periph_TIM5
-
-/*
-    Contiki(-ng) uses several timers. We implemented rtimer (r is for real-time) using TIM5 general purpose 
-    timer. Rtimer is typically used for TSCH operations, thus it should be precise.
-
-    TIM5 properties:
-        - 16-bit up/down counter,
-        - interrupt can be triggered on overflow or specific value,
-
-    Our goal is to get >= 32kHz triggers (see tsch-slot-operation.c). We set goal to have 64kHz triggers.
-
-    Internal clock of STM32 is drifting a lot - too much for precise TSCH operations. This presents a 
-    problem, because our devices are missing the slots. So we have 2 options:
-
-    1) When we are using SNR board, we can use AT86RF2xx oscillator clock as main clock for STM32, which has
-       very low drift (configured in platform.c).
-       Usage: VESNA_CONF_USE_EXTERNAL_CLOCK  (1)
-
-    2) When we are using ISMTV board, AT86RF2xx CLK pin is not connected anywhere. But we can use oscillator
-       of CC1101 radio, which is connected to TIM5 Channel 3 (PA2 on STM32). So only TIM5 will have external 
-       clock source, which is not drifting.
-       Usage: VESNA_CONF_RTIMER_USE_EXTERNAL_SOURCE   (1)
-*/
-
+/*---------------------------------------------------------------------------*/
 void rtimer_arch_init(void) {
 
     // TIM5 clock enable
@@ -115,13 +120,13 @@ void rtimer_arch_init(void) {
     // Enable timer
     TIM_Cmd(RTIMER_TIMx, ENABLE);
 }
-
+/*---------------------------------------------------------------------------*/
 rtimer_clock_t
 rtimer_arch_now(void)
 {   
     return (rtimer_clock_t)TIM_GetCounter(RTIMER_TIMx);
 }
-
+/*---------------------------------------------------------------------------*/
 void
 rtimer_arch_schedule(rtimer_clock_t t)
 {
@@ -143,7 +148,7 @@ rtimer_arch_schedule(rtimer_clock_t t)
 
     critical_exit(status);
 }
-
+/*---------------------------------------------------------------------------*/
 void
 contiki_rtimer_isr(void)
 {
@@ -155,5 +160,3 @@ contiki_rtimer_isr(void)
         rtimer_run_next();
     }
 }
-
-

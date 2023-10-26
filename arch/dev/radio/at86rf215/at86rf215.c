@@ -199,7 +199,7 @@ at86rf215_init(void)
 
     /* Reset the radio (again) */
     at86rf215_arch_set_RSTN();
-    clock_delay_usec(5);
+    //clock_delay_usec(5);          // TODO-OPENMOTE: non standard function for VESNA
     at86rf215_arch_clear_RSTN();
 
     do {

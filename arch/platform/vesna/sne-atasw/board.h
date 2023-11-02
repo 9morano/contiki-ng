@@ -62,13 +62,17 @@
 /* ATMEL radio is connected to SPI1 */
 #define AT86RF215_SPI_PORT			(VSN_SPI1)
 
-/* CSn - inverted chip select */
+/* SELn - inverted chip select */
 #define AT86RF215_CSN_PIN			(GPIO_Pin_0)
 #define AT86RF215_CSN_PORT			(GPIOA)
 
-/* RSTn - inverted RESET */
+/* RSTn - inverted reset */
 #define AT86RF215_RSTN_PIN			(GPIO_Pin_4)
 #define AT86RF215_RSTN_PORT			(GPIOA)
+
+/* CLKO - optional CLK output (can be used for rtimer) */
+#define AT86RF215_CLKO_PIN			(GPIO_Pin_3)
+#define AT86RF215_CLKO_PORT			(GPIOB)
 
 /* IRQ - interrupts from radio */
 #define AT86RF215_IRQ_PIN			(GPIO_Pin_3)
@@ -81,18 +85,18 @@
 #define AT86RF215_EXTI_IRQ_CHANNEL  (EXTI3_IRQn)
 
 /* RF Switch GPIOs */
-#define ATASW_SW_V1_PIN             (GPIO_Pin_1)
-#define ATASW_SW_V1_PORT            (GPIOA)
+#define ASW_V1_PIN                  (GPIO_Pin_1)
+#define ASW_V1_PORT                 (GPIOA)
 
-#define ATASW_SW_V2_PIN             (GPIO_Pin_9)
-#define ATASW_SW_V2_PORT            (GPIOB)
+#define ASW_V2_PIN                  (GPIO_Pin_9)
+#define ASW_V2_PORT                 (GPIOB)
 
-#define ATASW_SW_V3_PIN             (GPIO_Pin_8)
-#define ATASW_SW_V3_PORT            (GPIOB)
+#define ASW_V3_PIN                  (GPIO_Pin_8)
+#define ASW_V3_PORT                 (GPIOB)
 
 /* RF Switch must be powered via GPIO pin */
-#define ATASW_SW_VCC_PIN            (GPIO_Pin_2)
-#define ATASW_SW_VCC_PORT           (GPIOA)
+#define ASW_VCC_PIN                 (GPIO_Pin_2)
+#define ASW_VCC_PORT                (GPIOA)
 
 
 
@@ -100,15 +104,26 @@
 /* VESNA configuration for specific board                                    */
 /*---------------------------------------------------------------------------*/
 /* Use faster UART baudrate */
-#define VESNA_CONF_UART1_BAUDRATE           (460800)
+#define VESNA_CONF_UART1_BAUDRATE               (460800)
 
 /* Radio can provide external clock source for VESNA SNC*/
-#define VESNA_CONF_USE_EXTERNAL_CLOCK       (1)
+#define VESNA_CONF_USE_EXTERNAL_CLOCK           (0)
 
+/* Use external clock source for rtimer */
+#define VESNA_CONF_RTIMER_USE_EXTERNAL_SOURCE   (1)
 
 
 /*---------------------------------------------------------------------------*/
 /* Configuration required by Contiki-NG                                      */
 /*---------------------------------------------------------------------------*/
+#include "at86rf215-def.h"
+
+#define NETSTACK_CONF_RADIO                 at86rf215_driver
+
+#define RADIO_PHY_OVERHEAD                  AT86RF215_PHY_OVERHEAD
+#define RADIO_BYTE_AIR_TIME                 AT86RF215_BYTE_AIR_TIME
+#define RADIO_DELAY_BEFORE_TX               AT86RF215_DELAY_BEFORE_TX
+#define RADIO_DELAY_BEFORE_RX               AT86RF215_DELAY_BEFORE_RX
+#define RADIO_DELAY_BEFORE_DETECT           AT86RF215_DELAY_BEFORE_DETECT
 
 #endif /* BOARD_H_ */

@@ -82,16 +82,36 @@ Drift calculation:
     RTIMER_ARCH_DRIFT_PPM = 46
  */
 /*---------------------------------------------------------------------------*/
+
+/* When VESNA is using TSCH, one of the workarrounds must be selected ... SNR
+ * and SNE_ISMTV can use only one of the option, while SNE_ATASW has the 
+ * ability to use either one, but most likely not both at the same time. We do 
+ * the setup check here. 
+ */
+#if MAC_CONF_WITH_TSCH
 #if (VESNA_RTIMER_USE_EXTERNAL_SOURCE)
-    #if(VESNA_CONF_USE_EXTERNAL_CLOCK)
-        #error "rtimer config is not consistent"
+    #if BOARD_SNR
+        #error "SNR board has no option to feed the rtimer from external source."
+    #endif
+
+    #if(VESNA_USE_EXTERNAL_CLOCK)
+        #error "rtimer config: both are 1"
     #else
         #define RTIMER_ARCH_SECOND      (65533)
         #define RTIMER_ARCH_DRIFT_PPM   (503)
     #endif
 #else
-    #define RTIMER_ARCH_SECOND		(65503)
-    #define RTIMER_ARCH_DRIFT_PPM   (46) 
+    #if (BOARD_SNE_ISMTV_V1_0 || BOARD_SNE_ISMTV_V1_1)
+        #error "SNE_ISMTV boards have no option to feed the HSE clock from external source."
+    #endif
+
+    #if(VESNA_USE_EXTERNAL_CLOCK)
+        #define RTIMER_ARCH_SECOND		(65503)
+        #define RTIMER_ARCH_DRIFT_PPM   (46)
+    #else
+        #error "rtimer config: bot are 0"
+    #endif
+#endif
 #endif
 
 /*---------------------------------------------------------------------------*/

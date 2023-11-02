@@ -46,7 +46,7 @@
 void
 board_init(void)
 {
-    /* Enable GPIO peripherals (used by AT86RF2xx radios) */
+    /* Enable GPIO peripherals (used by SNR) */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 

@@ -47,7 +47,7 @@
 void
 board_init(void)
 {
-    /* Enable GPIO peripheral (used for AT86RF2xx radio) */
+    /* Enable GPIO peripheral (used by ISMTV) */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 

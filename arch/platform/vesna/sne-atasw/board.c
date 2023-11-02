@@ -37,6 +37,8 @@
 /*---------------------------------------------------------------------------*/
 #include "contiki.h"
 #include "sys/log.h"
+#include "stm32f10x_rcc.h"
+#include "antenna-switch.h"
 /*---------------------------------------------------------------------------*/
 /* Log configuration */
 #define LOG_MODULE "SNE"
@@ -45,5 +47,12 @@
 void
 board_init(void)
 {
+    /* Enable GPIO peripheral (used by ATASW) */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+
+    /* Initialize onboard antenna switch */
+    asw_init();
+
     LOG_INFO("ATASW board initialised!\n");
 }

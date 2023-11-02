@@ -49,7 +49,7 @@
 void
 board_init(void)
 {
-    /* Enable GPIO peripherals (used for AT86RF2xx radios) */
+    /* Enable GPIO peripherals (used by ISMTV) */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
 
     /* Quirk: Disable JTAG since it share pin with RST 

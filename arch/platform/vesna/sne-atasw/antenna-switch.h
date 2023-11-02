@@ -30,7 +30,31 @@
 /*---------------------------------------------------------------------------*/
 /**
  * \file
- *        
+ *        PE426482 antenna switch driver.        
  * \author
  *        Grega Morano <grega.morano@ijs.si>
+ *
+ *        PE426482 is absorptive SP8T RF switch with:
+ *        - freq from 10 MHz to 8 GHz 
+ *        - fast switching times: 100 ns
+ *        - insertion losses 1.1 @ 2.4 GHz
+ *        - isolation: 38 db @ 2.4 GHz
+ *        - requires 120 uA @ 3.3V ~ 5V 
+ *
+ *        On SNE_ATASW board, the RF switch must be powered on via GPIO pin.
  */
+/*---------------------------------------------------------------------------*/
+#ifndef ANTENNA_SWITCH_H_
+#define ANTENNA_SWITCH_H_
+/**
+ * \brief Initialise the GPIOs for antenna switch. Enable power supply. 
+ */
+void asw_init(void);
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief Select the desired antenna element. Defaults to A1 (number 0)
+ * \param element antenna numbers map from A1-A8 to 0-7
+ */
+void asw_select(uint8_t element);
+
+#endif /* ANTENNA_SWITCH_H_ */

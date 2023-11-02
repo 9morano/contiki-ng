@@ -30,7 +30,78 @@
 /*---------------------------------------------------------------------------*/
 /**
  * \file
- *        
+ *        PE426482 antenna switch driver (for VESNA platform, SNE_ATASW board).
  * \author
  *        Grega Morano <grega.morano@ijs.si>
+ *
+ *
+ *        Control logic truth table for PE426482
+ *             +----+----+----+
+ *         ____|_V1_|_V2_|_V3_|          asw_select(x)
+ *        | A1 |  0 |  0 |  0 |    -->         0
+ *        | A2 |  0 |  0 |  1 |    -->         1
+ *        | A3 |  0 |  1 |  0 |    -->         2
+ *        | A4 |  0 |  1 |  1 |    -->         3
+ *        | A5 |  1 |  0 |  0 |    -->         4
+ *        | A6 |  1 |  0 |  1 |    -->         5
+ *        | A7 |  1 |  1 |  0 |    -->         6
+ *        | A8 |  1 |  1 |  1 |    -->         7
+ *        +----+----+----+----+
  */
+/*---------------------------------------------------------------------------*/
+#include "contiki.h"
+#include "stm32f10x_gpio.h"
+#include "antenna-switch.h"
+/*---------------------------------------------------------------------------*/
+void asw_init(void)
+{
+    /* Enable GPIO pins (macros defined in board.h) */
+	GPIO_InitTypeDef GPIO_InitStructure;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_10MHz;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+
+	GPIO_InitStructure.GPIO_Pin = ASW_V1_PIN;
+	GPIO_Init(ASW_V1_PORT, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = ASW_V2_PIN;
+	GPIO_Init(ASW_V2_PORT, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = ASW_V3_PIN;
+	GPIO_Init(ASW_V3_PORT, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = ASW_VCC_PIN;
+	GPIO_Init(ASW_VCC_PORT, &GPIO_InitStructure);
+
+    /* Power-up the RF switch - put VCC pin to high*/
+    GPIO_SetBits(ASW_VCC_PORT, ASW_VCC_PIN);
+
+    /* Select default antenna --> A1 */
+    asw_select(0);
+}
+/*---------------------------------------------------------------------------*/
+void asw_select(uint8_t element)
+{
+    /* V3 */
+    if(element & 0x01){
+        GPIO_SetBits(ASW_V3_PORT, ASW_V3_PIN);
+    }
+    else{
+        GPIO_ResetBits(ASW_V3_PORT, ASW_V3_PIN);
+    }
+    /* V2 */
+    if(element & 0x02){
+        GPIO_SetBits(ASW_V2_PORT, ASW_V2_PIN);
+    }
+    else{
+        GPIO_ResetBits(ASW_V2_PORT, ASW_V2_PIN);
+    }
+    /* V1 */
+    if(element & 0x04){
+        GPIO_SetBits(ASW_V1_PORT, ASW_V1_PIN);
+    }
+    else{
+        GPIO_ResetBits(ASW_V1_PORT, ASW_V1_PIN);
+    }
+
+    /* TODO: consider the use of GPIO_WriteBit(PORT, PIN, 0/1) */
+}

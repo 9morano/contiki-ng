@@ -31,13 +31,11 @@
 #include "vsnsetup.h"
 #include "vsnledind.h"
 #include "vsnresetbutton.h"
-
-#include "sys/clock.h"
-
 #include "uart1.h"
-#include "rtimer-arch.h"
-#include "at86rf2xx-arch.h"
 
+extern void at86rf2xx_isr(void);
+extern void at86rf215_isr(void);
+extern void contiki_rtimer_isr(void);
 extern void clock_interrupt_handler(void);
 
 /******************************************************************************/

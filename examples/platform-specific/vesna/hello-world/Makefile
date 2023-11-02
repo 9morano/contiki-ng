@@ -10,9 +10,9 @@ VSNDRIVERS := ../../../../arch/platform/vesna/vesna-drivers
 TARGET=vesna
 
 # Select the extension/radio board (snr/sne-ismtv-v1-1)
-BOARD = sne-ismtv-v1-1
+BOARD = sne-atasw
 # Select the onboard radio
-RADIO = AT86RF231
+RADIO = AT86RF215
 
 
 

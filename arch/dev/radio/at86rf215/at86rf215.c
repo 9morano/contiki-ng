@@ -53,6 +53,9 @@
 #include "at86rf215-registermap.h"
 #include "at86rf215-def.h"
 
+#include "vsntime.h"
+#include "sne-atasw/antenna-switch.h"
+
 #include "sys/log.h"
 /*---------------------------------------------------------------------------*/
 #define LOG_MODULE          "AT86RF215"
@@ -170,6 +173,8 @@ static int8_t get_tx_power(void);
 static void set_channel(uint8_t channel);
 static uint8_t get_channel(void);
 static void set_frequency(uint16_t freq, uint8_t decimal);
+
+static void set_CTTM(void);
 
 /*---------------------------------------------------------------------------*/
 /* HAL */
@@ -1173,6 +1178,69 @@ set_frequency(uint16_t freq, uint8_t decimal)
     regWrite(RG_RF24_CCF0L, (uint8_t)((N & 0xFF00) >> 8));
     regWrite(RG_RF24_CCF0H, (uint8_t)((N & 0xFF0000) >> 16));
     regWrite(RG_RF24_CNM, 0xC0);
+}
+
+
+/**
+ * Set the radio to: Continious Transmission Test Mode
+ * The radio will emmit Continious Wave at desired frequency.
+ * Optional: select on which antenna to transmit on ATASW boards
+ */
+static void
+set_CTTM(void){
+
+    /* Set the frequency and power */
+    set_frequency(2406, 0);
+    set_tx_power(AT86RF215_OUTPUT_POWER_MAX);
+
+    /* Go to the TXPREP state */
+    regWrite(RG_RFn_CMD, RF_CMD_TXPREP);
+
+    /* Enable Chip Mode */
+    regWrite(RG_RF_IQIFC1,0x12);
+
+    /* CTX with DAC value overwrite */
+    regWrite(RG_RF24_TXDACI, 0xFE);     // Enable DAC overwrite, set I signal to max
+    regWrite(RG_RF24_TXDACQ, 0xBF);     // Enable DAC overwrite, set Q signal to zero
+
+    /* Initiate transmission */
+    regWrite(RG_RFn_CMD, RF_CMD_TX);
+
+    LOG_INFO("Start CW \n");
+
+    while(1){
+        LOG_INFO("Antenna 1 \n");
+        asw_select(0);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 2 \n");
+        asw_select(1);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 3 \n");
+        asw_select(2);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 4 \n");
+        asw_select(3);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 5 \n");
+        asw_select(4);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 6 \n");
+        asw_select(5);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 7 \n");
+        asw_select(6);
+        vsnTime_delayS(5);
+
+        LOG_INFO("Antenna 8 \n");
+        asw_select(7);
+        vsnTime_delayS(5);
+    }
 }
 
 /*---------------------------------------------------------------------------*/

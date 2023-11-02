@@ -10,7 +10,7 @@
 #define LOG_CONF_LEVEL_TCPIP                       LOG_LEVEL_WARN
 #define LOG_CONF_LEVEL_MAC                         LOG_LEVEL_INFO
 #define LOG_CONF_LEVEL_FRAMER                      LOG_LEVEL_WARN
-#define LOG_CONF_LEVEL_AT86RF2XX                   LOG_LEVEL_INFO
+#define LOG_CONF_LEVEL_AT86RF215                   LOG_LEVEL_INFO
 #define TSCH_LOG_CONF_PER_SLOT                     (1)
 
 #define TSCH_CONF_DEFAULT_HOPPING_SEQUENCE          (uint8_t[]){11}
